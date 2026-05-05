@@ -3,28 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buchardo — Divisor de cuenta</title>
+<title>Almuerzos/Cenas en Buchardo Restaurante</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #f7f4ef; --surface: #ffffff; --surface2: #f0ece4;
-    --border: #ddd8cf; --border2: #c8c1b5;
-    --text: #1a1714; --text2: #6b6460; --text3: #9c9590;
-    --accent: #b85c2a; --accent-light: #f5ebe4; --accent-border: #e8c4ab;
+    --bg: #f0f3f8; --surface: #ffffff; --surface2: #e8edf5;
+    --border: #c8d3e8; --border2: #a0b0cc;
+    --text: #0d1f3c; --text2: #4a5a7a; --text3: #8090aa;
+    --accent: #c0182a; --accent-light: #fce8ea; --accent-border: #f0a0aa;
     --success: #2d6a4f; --success-bg: #e8f5ee;
     --warning: #7d4f00; --warning-bg: #fff8e6;
     --danger: #8b2a2a; --danger-bg: #fdf0f0;
     --radius: 10px; --radius-lg: 16px;
-    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow: 0 1px 3px rgba(13,31,60,0.08), 0 4px 16px rgba(13,31,60,0.06);
   }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
 
-  header { background: var(--text); color: #f7f4ef; padding: 1.25rem 1.5rem; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  header h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; letter-spacing: 0.02em; }
+  header { background: #0d1f3c; color: #ffffff; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 4px solid #c0182a; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; letter-spacing: 0.02em; line-height: 1.3; }
+  header h1 span { display: block; font-size: 12px; opacity: 0.6; font-family: 'DM Sans', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2px; }
   header .header-right { display: flex; align-items: center; gap: 10px; }
-  .session-badge { font-size: 12px; opacity: 0.6; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 3px 8px; letter-spacing: 0.05em; }
+  .session-badge { font-size: 12px; opacity: 0.7; background: rgba(255,255,255,0.12); border-radius: 6px; padding: 3px 8px; letter-spacing: 0.05em; }
   .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #888; flex-shrink: 0; transition: background 0.3s; }
   .sync-dot.synced { background: #4caf50; }
   .sync-dot.syncing { background: #ff9800; animation: pulse 1s infinite; }
@@ -49,8 +50,8 @@
   .step-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 11px; font-weight: 400; color: var(--text3); cursor: pointer; transition: all 0.2s; border-right: 1px solid var(--border); user-select: none; }
   .step-tab:last-child { border-right: none; }
   .step-tab .step-num { display: block; font-size: 16px; font-family: 'Playfair Display', serif; color: var(--border2); line-height: 1.2; transition: color 0.2s; }
-  .step-tab.active { background: var(--text); color: #f7f4ef; }
-  .step-tab.active .step-num { color: #f7f4ef; }
+  .step-tab.active { background: #0d1f3c; color: #ffffff; }
+  .step-tab.active .step-num { color: #ffffff; }
   .step-tab.done { color: var(--success); }
   .step-tab.done .step-num { color: var(--success); }
 
@@ -94,10 +95,10 @@
   .btn { padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
   .btn:hover { background: var(--surface2); border-color: var(--text); }
   .btn:active { transform: scale(0.98); }
-  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
-  .btn-primary:hover { background: #2e2926; }
+  .btn-primary { background: #0d1f3c; color: #ffffff; border-color: #0d1f3c; }
+  .btn-primary:hover { background: #162d54; }
   .btn-accent { background: var(--accent); color: white; border-color: var(--accent); }
-  .btn-accent:hover { background: #a34e22; }
+  .btn-accent:hover { background: #a01020; }
   .btn-danger { color: var(--danger); border-color: #e8b4b4; }
   .btn-danger:hover { background: var(--danger-bg); }
   .btn-sm { padding: 5px 12px; font-size: 12px; }
@@ -140,7 +141,7 @@
   .diff-banner { background: var(--warning-bg); border: 1px solid #f0d080; border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: var(--warning); margin-bottom: 1rem; }
   .diff-banner strong { display: block; margin-bottom: 4px; }
 
-  .total-summary-card { background: var(--text); color: var(--bg); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+  .total-summary-card { background: #0d1f3c; color: #ffffff; border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
   .total-summary-card .label { font-size: 12px; opacity: 0.6; margin-bottom: 2px; }
   .total-summary-card .value { font-family: 'Playfair Display', serif; font-size: 26px; }
 
@@ -164,7 +165,7 @@
 <body>
 
 <header>
-  <h1>Buchardo</h1>
+  <h1><span>Buchardo Restaurante</span>Almuerzos / Cenas</h1>
   <div class="header-right">
     <span class="session-badge" id="header-session" style="display:none;"></span>
     <div class="sync-dot" id="sync-dot" title="Estado de sincronización"></div>
@@ -326,9 +327,8 @@ const db = getDatabase(firebaseApp);
 /* ── Constants ── */
 const MENUS = {
   ejecutivo1: { label: 'Menú Ejecutivo 1', price: 20000, items: ['Bife de costilla','Bife de cuadril','Ravioles de ricota','Ravioles de verdura'], garnishes: ['Fritas','Puré','Ensalada'], sauces: ['Salsa rosa','Crema','Filetto'] },
-  ejecutivo2: { label: 'Menú Ejecutivo 2', price: 18000, items: ['Merluza a la romana con puré','Milanesa con guarnición','Suprema con guarnición','Ensalada César grande','Pasta seca','Pizza individual de muzzarella con fainá','¼ de pollo con guarnición'], garnishes: [], sauces: ['Crema','Filetto','Rosa'] },
+  ejecutivo2: { label: 'Menú Ejecutivo 2', price: 18000, items: ['Merluza a la romana con puré','Ensalada César grande','Pasta seca','Pizza individual de muzzarella con fainá','¼ de pollo con guarnición'], garnishes: [], sauces: ['Crema','Filetto','Rosa'] },
   socios:     { label: 'Menú Socios', price: 17000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
-  deportivo:  { label: 'Menú Deportivo (hasta 18 años)', price: 15000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
   infantil:   { label: 'Menú Infantil (hasta 10 años)', price: 13000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
   otro: { label: 'Otro (precio libre)', price: 0, items: [], garnishes: [], sauces: [] }
 };
@@ -616,7 +616,7 @@ function buildOrderHTML(fid, o, idx) {
   const garnOpts = m.garnishes.map(g => `<option value="${g}" ${o.garnish===g?'selected':''}>${g}</option>`).join('');
   const sauceOpts = m.sauces.map(s => `<option value="${s}" ${o.sauce===s?'selected':''}>${s}</option>`).join('');
   const isOtro = o.menu === 'otro';
-  const isKids = o.menu === 'deportivo' || o.menu === 'infantil';
+  const isKids = o.menu === 'infantil';
   return `
     <div class="order-block">
       <div class="order-block-header">
