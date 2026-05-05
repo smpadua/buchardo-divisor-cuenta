@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buchardo — Divisor de cuenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f4ef; --surface: #ffffff; --surface2: #f0ece4;
+    --border: #ddd8cf; --border2: #c8c1b5;
+    --text: #1a1714; --text2: #6b6460; --text3: #9c9590;
+    --accent: #b85c2a; --accent-light: #f5ebe4; --accent-border: #e8c4ab;
+    --success: #2d6a4f; --success-bg: #e8f5ee;
+    --warning: #7d4f00; --warning-bg: #fff8e6;
+    --danger: #8b2a2a; --danger-bg: #fdf0f0;
+    --radius: 10px; --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+  header { background: var(--text); color: #f7f4ef; padding: 1.25rem 1.5rem; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; letter-spacing: 0.02em; }
+  header .header-right { display: flex; align-items: center; gap: 10px; }
+  .session-badge { font-size: 12px; opacity: 0.6; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 3px 8px; letter-spacing: 0.05em; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #888; flex-shrink: 0; transition: background 0.3s; }
+  .sync-dot.synced { background: #4caf50; }
+  .sync-dot.syncing { background: #ff9800; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  /* Landing screen */
+  .landing { max-width: 420px; margin: 3rem auto; text-align: center; }
+  .landing h2 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 400; margin-bottom: 8px; }
+  .landing p { color: var(--text2); font-size: 14px; margin-bottom: 2rem; }
+  .landing-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1rem; box-shadow: var(--shadow); text-align: left; }
+  .landing-card h3 { font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+  .code-display { font-family: 'Playfair Display', serif; font-size: 32px; text-align: center; letter-spacing: 0.15em; color: var(--accent); padding: 12px; background: var(--accent-light); border-radius: var(--radius); margin: 8px 0 12px; border: 1px solid var(--accent-border); }
+  .code-input-row { display: flex; gap: 8px; }
+  .code-input-row input { flex: 1; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; text-align: center; font-family: 'Playfair Display', serif; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+  .divider { display: flex; align-items: center; gap: 12px; color: var(--text3); font-size: 12px; margin: 1rem 0; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* Steps nav */
+  .steps-nav { display: flex; margin-bottom: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+  .step-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 11px; font-weight: 400; color: var(--text3); cursor: pointer; transition: all 0.2s; border-right: 1px solid var(--border); user-select: none; }
+  .step-tab:last-child { border-right: none; }
+  .step-tab .step-num { display: block; font-size: 16px; font-family: 'Playfair Display', serif; color: var(--border2); line-height: 1.2; transition: color 0.2s; }
+  .step-tab.active { background: var(--text); color: #f7f4ef; }
+  .step-tab.active .step-num { color: #f7f4ef; }
+  .step-tab.done { color: var(--success); }
+  .step-tab.done .step-num { color: var(--success); }
+
+  /* API Key banner */
+  .api-banner { background: var(--warning-bg); border: 1px solid #f0d080; border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: var(--warning); margin-bottom: 1.25rem; }
+  .api-banner details { width: 100%; }
+  .api-banner summary { cursor: pointer; font-weight: 500; }
+  .api-key-input-row { display: flex; gap: 8px; margin-top: 8px; }
+  .api-key-input-row input { flex: 1; font-size: 13px; padding: 7px 10px; border: 1px solid #f0d080; border-radius: 6px; background: #fff; font-family: 'DM Sans', sans-serif; color: var(--text); }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow); }
+  .card-title { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 1rem; }
+
+  .family-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1rem; box-shadow: var(--shadow); overflow: hidden; }
+  .family-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .family-name-input { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 400; border: none; background: transparent; color: var(--text); width: 200px; outline: none; }
+  .family-name-input:focus { border-bottom: 1px solid var(--border2); }
+  .family-body { padding: 1rem 1.25rem; }
+  .family-total-line { text-align: right; font-size: 12px; color: var(--text3); padding-top: 8px; margin-top: 8px; border-top: 1px solid var(--border); }
+  .family-total-line strong { color: var(--text); font-size: 14px; }
+
+  .order-block { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 8px; }
+  .order-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .order-badge { display: inline-block; background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 99px; padding: 2px 10px; font-size: 11px; font-weight: 500; }
+
+  .form-group { margin-bottom: 8px; }
+  .form-label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 3px; }
+  select, input[type=text], input[type=number], textarea { width: 100%; padding: 8px 10px; font-size: 13px; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); transition: border-color 0.15s; -webkit-appearance: none; }
+  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 56px; }
+
+  .qty-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+  .qty-label { font-size: 13px; color: var(--text2); }
+  .qty-label small { display: block; font-size: 11px; color: var(--text3); }
+  .qty-ctrl { display: flex; align-items: center; gap: 8px; }
+  .qty-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; font-family: 'DM Sans', sans-serif; }
+  .qty-btn:hover { background: var(--surface2); }
+  .qty-num { font-size: 15px; font-weight: 500; min-width: 20px; text-align: center; }
+
+  .btn { padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface); color: var(--text); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
+  .btn:hover { background: var(--surface2); border-color: var(--text); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn-primary:hover { background: #2e2926; }
+  .btn-accent { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-accent:hover { background: #a34e22; }
+  .btn-danger { color: var(--danger); border-color: #e8b4b4; }
+  .btn-danger:hover { background: var(--danger-bg); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-dashed { width: 100%; border: 1px dashed var(--border2); background: transparent; color: var(--text3); padding: 10px; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .btn-dashed:hover { background: var(--surface2); color: var(--text); border-color: var(--text); }
+
+  .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; }
+  .actions-between { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 1.25rem; }
+
+  .upload-area { border: 2px dashed var(--border2); border-radius: var(--radius-lg); padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); }
+  .upload-area:hover { background: var(--accent-light); border-color: var(--accent); }
+  .upload-area.has-image { border-style: solid; border-color: var(--success); background: var(--success-bg); }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .upload-title { font-size: 15px; font-weight: 500; }
+  .upload-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  #ticket-preview { max-width: 100%; max-height: 300px; border-radius: var(--radius); margin-top: 1rem; display: none; }
+  #file-input { display: none; }
+
+  .processing-overlay { background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: var(--radius); padding: 14px 16px; display: none; align-items: center; gap: 12px; margin-top: 1rem; }
+  .processing-overlay.visible { display: flex; }
+  .spinner { width: 20px; height: 20px; border: 2px solid var(--accent-border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ticket-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ticket-table th { text-align: left; font-size: 11px; color: var(--text3); font-weight: 500; padding: 4px 6px 8px; border-bottom: 1px solid var(--border); }
+  .ticket-table td { padding: 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .ticket-table tr:last-child td { border-bottom: none; }
+  .ticket-table input { padding: 5px 7px; font-size: 13px; }
+  .ticket-table input[type=number] { width: 75px; }
+
+  .result-family-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1rem; box-shadow: var(--shadow); }
+  .result-family-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .result-family-name { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; }
+  .result-amount { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--accent); }
+  .result-body { padding: 1rem 1.25rem; }
+  .result-line { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); padding: 3px 0; }
+  .result-line.extra { color: var(--text3); font-size: 12px; }
+  .result-pct { display: inline-block; background: var(--accent-light); color: var(--accent); border-radius: 99px; padding: 1px 8px; font-size: 11px; margin-top: 6px; }
+
+  .diff-banner { background: var(--warning-bg); border: 1px solid #f0d080; border-radius: var(--radius); padding: 12px 14px; font-size: 13px; color: var(--warning); margin-bottom: 1rem; }
+  .diff-banner strong { display: block; margin-bottom: 4px; }
+
+  .total-summary-card { background: var(--text); color: var(--bg); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+  .total-summary-card .label { font-size: 12px; opacity: 0.6; margin-bottom: 2px; }
+  .total-summary-card .value { font-family: 'Playfair Display', serif; font-size: 26px; }
+
+  .sep { height: 1px; background: var(--border); margin: 12px 0; }
+  .text-muted { color: var(--text3); font-size: 13px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Sync banner */
+  .sync-banner { background: var(--success-bg); border: 1px solid #a8d5be; border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--success); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .sync-banner.warning { background: var(--warning-bg); border-color: #f0d080; color: var(--warning); }
+
+  @media (max-width: 480px) {
+    .step-tab { font-size: 10px; padding: 10px 2px; }
+    .step-tab .step-num { font-size: 14px; }
+    .result-amount { font-size: 18px; }
+    .total-summary-card .value { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Buchardo</h1>
+  <div class="header-right">
+    <span class="session-badge" id="header-session" style="display:none;"></span>
+    <div class="sync-dot" id="sync-dot" title="Estado de sincronización"></div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- LANDING -->
+  <div id="landing-screen">
+    <div class="landing">
+      <h2>Divisor de cuenta</h2>
+      <p>Creá una mesa nueva o uníte a una existente con el código.</p>
+
+      <div class="landing-card">
+        <h3>Nueva mesa</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Se genera un código único para compartir con las otras familias.</p>
+        <button class="btn btn-primary" style="width:100%;" id="btn-create" onclick="createSession()" disabled>Crear mesa nueva</button>
+      </div>
+
+      <div class="divider">o</div>
+
+      <div class="landing-card">
+        <h3>Unirse a una mesa</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Ingresá el código que te compartieron.</p>
+        <div class="code-input-row">
+          <input type="text" id="join-code-input" maxlength="8" placeholder="XXXX-XXXX" oninput="this.value=this.value.toUpperCase()">
+          <button class="btn btn-accent" id="btn-join" onclick="joinSession()" disabled>Unirse</button>
+        </div>
+        <p id="join-error" style="font-size:12px;color:var(--danger);margin-top:6px;display:none;"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app-screen" style="display:none;">
+
+    <!-- Sync banner -->
+    <div class="sync-banner" id="sync-banner" style="display:none;"></div>
+
+    <!-- Steps nav -->
+    <nav class="steps-nav">
+      <div class="step-tab active" id="tab1" onclick="goStep(1)"><span class="step-num">1</span>Pedidos</div>
+      <div class="step-tab" id="tab2" onclick="goStep(2)"><span class="step-num">2</span>Comanda</div>
+      <div class="step-tab" id="tab3" onclick="goStep(3)"><span class="step-num">3</span>Ticket</div>
+      <div class="step-tab" id="tab4" onclick="goStep(4)"><span class="step-num">4</span>Validar</div>
+      <div class="step-tab" id="tab5" onclick="goStep(5)"><span class="step-num">5</span>División</div>
+    </nav>
+
+    <!-- STEP 1 -->
+    <div class="panel active" id="step1">
+      <div id="families-container"></div>
+      <button class="btn-dashed" onclick="addFamily()">+ Agregar familia</button>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="goStep(2)">Ver comanda →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="panel" id="step2">
+      <div id="comanda-container"></div>
+      <div class="actions-between">
+        <button class="btn" onclick="goStep(1)">← Editar pedidos</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Cargar ticket →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="panel" id="step3">
+      <div class="api-banner" style="margin-bottom:1rem;">
+        <details style="width:100%;">
+          <summary>🔑 API key de Anthropic (solo necesaria para leer el ticket con IA)</summary>
+          <p style="margin-top:6px;font-size:12px;">Se usa únicamente para leer la foto del ticket. Las familias que solo cargan pedidos no necesitan configurarla. Obtené tu key en <a href="https://console.anthropic.com" target="_blank" style="color:var(--warning);">console.anthropic.com</a>. Se guarda solo en este navegador.</p>
+          <div class="api-key-input-row">
+            <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." />
+            <button class="btn btn-sm" onclick="saveApiKey()">Guardar</button>
+            <button class="btn btn-sm btn-danger" onclick="clearApiKey()">Borrar</button>
+          </div>
+          <p id="api-key-status" style="font-size:11px;margin-top:6px;"></p>
+        </details>
+      </div>
+      <div class="card">
+        <div class="card-title">Foto del ticket</div>
+        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+          <div class="upload-icon">📷</div>
+          <div class="upload-title">Tocá para sacar foto o subir imagen</div>
+          <div class="upload-sub">JPG, PNG o HEIC — el ticket se lee automáticamente con IA</div>
+          <img id="ticket-preview" alt="Vista previa del ticket" />
+        </div>
+        <input type="file" id="file-input" accept="image/*" capture="environment" onchange="handleFileUpload(this)">
+        <div class="processing-overlay" id="processing">
+          <div class="spinner"></div>
+          <span>Leyendo el ticket con Claude Vision…</span>
+        </div>
+      </div>
+      <div class="card" id="ticket-items-card" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div class="card-title" style="margin:0;">Ítems del ticket</div>
+          <button class="btn btn-sm" onclick="addTicketItemRow()">+ Agregar ítem</button>
+        </div>
+        <table class="ticket-table">
+          <thead><tr><th>Descripción</th><th>Cant.</th><th>Precio unit.</th><th></th></tr></thead>
+          <tbody id="ticket-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Total del ticket ($)</label>
+          <input type="number" id="ticket-total" placeholder="ej: 125000" oninput="onTicketTotalChange()">
+        </div>
+        <div id="diff-info" class="text-muted" style="font-size:12px;"></div>
+      </div>
+      <div class="actions-between">
+        <button class="btn" onclick="goStep(2)">← Volver</button>
+        <button class="btn btn-primary" onclick="goStep(4)">Validar pedidos →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="panel" id="step4">
+      <div id="validation-container"></div>
+      <div class="actions-between">
+        <button class="btn" onclick="goStep(3)">← Volver</button>
+        <button class="btn btn-primary" onclick="goStep(5)">Calcular división →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="panel" id="step5">
+      <div id="results-container"></div>
+      <div class="actions-between">
+        <button class="btn" onclick="goStep(4)">← Volver</button>
+        <button class="btn btn-danger" onclick="resetAll()">Reiniciar mesa</button>
+      </div>
+    </div>
+
+  </div><!-- /app-screen -->
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBshjPzgrWOH4zO76S1gpCk5CFe4eHZFU4",
+  authDomain: "buchardo-divisor.firebaseapp.com",
+  databaseURL: "https://buchardo-divisor-default-rtdb.firebaseio.com",
+  projectId: "buchardo-divisor",
+  storageBucket: "buchardo-divisor.firebasestorage.app",
+  messagingSenderId: "712031779488",
+  appId: "1:712031779488:web:778075520f30c6beb767c5",
+  measurementId: "G-93MH37W3WW"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+
+/* ── Constants ── */
+const MENUS = {
+  ejecutivo1: { label: 'Menú Ejecutivo 1', price: 20000, items: ['Bife de costilla','Bife de cuadril','Ravioles de ricota','Ravioles de verdura'], garnishes: ['Fritas','Puré','Ensalada'], sauces: ['Salsa rosa','Crema','Filetto'] },
+  ejecutivo2: { label: 'Menú Ejecutivo 2', price: 18000, items: ['Merluza a la romana con puré','Milanesa con guarnición','Suprema con guarnición','Ensalada César grande','Pasta seca','Pizza individual de muzzarella con fainá','¼ de pollo con guarnición'], garnishes: [], sauces: ['Crema','Filetto','Rosa'] },
+  socios:     { label: 'Menú Socios', price: 17000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
+  deportivo:  { label: 'Menú Deportivo (hasta 18 años)', price: 15000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
+  infantil:   { label: 'Menú Infantil (hasta 10 años)', price: 13000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
+  otro: { label: 'Otro (precio libre)', price: 0, items: [], garnishes: [], sauces: [] }
+};
+const POSTRE_PRICE = 5500;
+const CAFE_PRICE = 3500;
+const BEBIDAS = ['Agua sin gas','Agua con gas','Pepsi','Pepsi Black','Seven Up','Seven Up Free'];
+
+/* ── State ── */
+let sessionCode = null;
+let families = [];
+let ticketItems = [];
+let manualAssignments = {};
+let ticketTotal = 0;
+let famCounter = 0;
+let tickCounter = 0;
+let isSyncing = false;
+let saveTimeout = null;
+let unsubscribe = null;
+
+/* ── Session ── */
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    if (i === 4) code += '-';
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+window.createSession = async function() {
+  const code = generateCode();
+  const sessionRef = ref(db, `sessions/${code}`);
+  await set(sessionRef, { families: [], ticketItems: [], manualAssignments: {}, ticketTotal: 0, createdAt: Date.now() });
+  startSession(code);
+};
+
+window.joinSession = async function() {
+  const raw = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const code = raw.replace(/[^A-Z0-9]/g,'').slice(0,8);
+  const formatted = code.length >= 4 ? code.slice(0,4) + '-' + code.slice(4) : code;
+  const errEl = document.getElementById('join-error');
+
+  if (formatted.replace('-','').length < 8) {
+    errEl.textContent = 'El código debe tener 8 caracteres.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const snap = await get(ref(db, `sessions/${formatted}`));
+  if (!snap.exists()) {
+    errEl.textContent = 'No se encontró una mesa con ese código.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  startSession(formatted);
+};
+
+function startSession(code) {
+  sessionCode = code;
+  localStorage.setItem('buch_session', code);
+  document.getElementById('landing-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('header-session').textContent = code;
+  document.getElementById('header-session').style.display = 'inline';
+  showSyncBanner(`Mesa: ${code} — compartí este código con las otras familias`, false);
+  subscribeToSession();
+}
+
+function subscribeToSession() {
+  if (unsubscribe) unsubscribe();
+  const sessionRef = ref(db, `sessions/${sessionCode}`);
+  unsubscribe = onValue(sessionRef, (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+
+    const rawFamilies = data.families ? Object.values(data.families) : [];
+    families = rawFamilies.map(f => ({
+      ...f,
+      orders: Array.isArray(f.orders) ? f.orders : (f.orders ? Object.values(f.orders) : [])
+    }));
+
+    const rawTicket = data.ticketItems ? Object.values(data.ticketItems) : [];
+    ticketItems = rawTicket.map(it => ({ ...it }));
+
+    manualAssignments = data.manualAssignments || {};
+    ticketTotal = data.ticketTotal || 0;
+
+    // Update ticket total input without triggering save
+    const ttInput = document.getElementById('ticket-total');
+    if (ttInput && document.activeElement !== ttInput) ttInput.value = ticketTotal || '';
+
+    setSyncDot('synced');
+    renderCurrentStep();
+  });
+}
+
+function setSyncDot(state) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = 'sync-dot ' + state;
+}
+
+function showSyncBanner(msg, warning=false) {
+  const b = document.getElementById('sync-banner');
+  b.textContent = msg;
+  b.className = 'sync-banner' + (warning ? ' warning' : '');
+  b.style.display = 'flex';
+  if (!warning) setTimeout(() => { b.style.display = 'none'; }, 4000);
+}
+
+/* ── Save to Firebase (debounced) ── */
+function scheduleSave() {
+  setSyncDot('syncing');
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveToFirebase, 600);
+}
+
+async function saveToFirebase() {
+  if (!sessionCode) return;
+  try {
+    // Save everything except families (families are saved per-node)
+    await update(ref(db, `sessions/${sessionCode}`), {
+      ticketItems,
+      manualAssignments,
+      ticketTotal,
+      updatedAt: Date.now()
+    });
+    setSyncDot('synced');
+  } catch(e) {
+    setSyncDot('');
+    showSyncBanner('Error al guardar. Verificá tu conexión.', true);
+  }
+}
+
+async function saveFamilyNode(family) {
+  if (!sessionCode) return;
+  try {
+    setSyncDot('syncing');
+    await set(ref(db, `sessions/${sessionCode}/families/${family.id}`), family);
+    setSyncDot('synced');
+  } catch(e) {
+    setSyncDot('');
+    showSyncBanner('Error al guardar. Verificá tu conexión.', true);
+  }
+}
+
+async function removeFamilyNode(familyId) {
+  if (!sessionCode) return;
+  try {
+    setSyncDot('syncing');
+    await remove(ref(db, `sessions/${sessionCode}/families/${familyId}`));
+    setSyncDot('synced');
+  } catch(e) {
+    setSyncDot('');
+    showSyncBanner('Error al guardar. Verificá tu conexión.', true);
+  }
+}
+
+/* ── Navigation ── */
+let currentStep = 1;
+window.goStep = function(n) {
+  currentStep = n;
+  [1,2,3,4,5].forEach(i => {
+    document.getElementById('step'+i).classList.toggle('active', i===n);
+    const tab = document.getElementById('tab'+i);
+    tab.classList.remove('active','done');
+    if (i===n) tab.classList.add('active');
+    else if (i<n) tab.classList.add('done');
+  });
+  renderCurrentStep();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function renderCurrentStep() {
+  if (currentStep === 1) renderFamilies();
+  if (currentStep === 2) renderComanda();
+  if (currentStep === 3) { renderTicketTable(); updateDiffInfo(); initApiKey(); }
+  if (currentStep === 4) renderValidation();
+  if (currentStep === 5) renderResults();
+}
+
+/* ── API Key ── */
+function initApiKey() {
+  const k = getApiKey();
+  if (k) {
+    document.getElementById('api-key-input').value = k;
+    document.getElementById('api-key-status').textContent = '✓ API key guardada.';
+    document.getElementById('api-key-status').style.color = 'var(--success)';
+  }
+}
+window.saveApiKey = function() {
+  const v = document.getElementById('api-key-input').value.trim();
+  if (!v) return;
+  localStorage.setItem('buch_apikey', v);
+  document.getElementById('api-key-status').textContent = '✓ Guardada.';
+  document.getElementById('api-key-status').style.color = 'var(--success)';
+};
+window.clearApiKey = function() {
+  localStorage.removeItem('buch_apikey');
+  document.getElementById('api-key-input').value = '';
+  document.getElementById('api-key-status').textContent = 'Borrada.';
+};
+function getApiKey() { return localStorage.getItem('buch_apikey') || ''; }
+
+/* ── Families ── */
+window.addFamily = function() {
+  const newId = Date.now();
+  const newFamily = { id: newId, name: 'Familia', orders: [] };
+  families.push(newFamily);
+  renderFamilies();
+  saveFamilyNode(newFamily);
+};
+
+window.removeFamily = function(id) {
+  families = families.filter(f => f.id !== id);
+  renderFamilies();
+  removeFamilyNode(id);
+};
+
+window.updateFamilyName = function(id, val) {
+  const f = families.find(x => x.id === id);
+  if (f) { f.name = val; saveFamilyNode(f); }
+};
+
+window.addOrder = function(fid) {
+  const f = families.find(x => x.id === fid);
+  if (f) {
+    f.orders.push({ menu:'ejecutivo1', item:'', garnish:'', sauce:'', bebida:'', postre:0, cafe:0, comments:'', description:'', price:0 });
+    renderFamilies();
+    saveFamilyNode(f);
+  }
+};
+
+window.removeOrder = function(fid, idx) {
+  const f = families.find(x => x.id === fid);
+  if (f) { f.orders.splice(idx, 1); renderFamilies(); saveFamilyNode(f); }
+};
+
+window.updateOrder = function(fid, idx, key, val) {
+  const f = families.find(x => x.id === fid);
+  if (!f || !f.orders[idx]) return;
+  f.orders[idx][key] = val;
+  if (key === 'menu') { f.orders[idx].item=''; f.orders[idx].garnish=''; f.orders[idx].sauce=''; }
+  renderFamilies();
+  saveFamilyNode(f);
+};
+
+function renderFamilies() {
+  const c = document.getElementById('families-container');
+  if (!c) return;
+  c.innerHTML = '';
+  families.forEach(f => {
+    const d = document.createElement('div');
+    d.className = 'family-card';
+    d.innerHTML = buildFamilyHTML(f);
+    c.appendChild(d);
+  });
+}
+
+function buildFamilyHTML(f) {
+  const total = familyTotal(f);
+  const ordersHTML = f.orders.map((o,i) => buildOrderHTML(f.id, o, i)).join('');
+  return `
+    <div class="family-header">
+      <input class="family-name-input" value="${escHtml(f.name)}" onchange="updateFamilyName(${f.id},this.value)" placeholder="Nombre de familia">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:12px;color:var(--text3);">${f.orders.length} plato${f.orders.length!==1?'s':''}</span>
+        <button class="btn btn-sm btn-danger" onclick="removeFamily(${f.id})">Eliminar</button>
+      </div>
+    </div>
+    <div class="family-body">
+      ${ordersHTML}
+      <button class="btn-dashed" style="margin-top:4px;" onclick="addOrder(${f.id})">+ Agregar plato</button>
+      ${f.orders.length>0 ? `<div class="family-total-line">Total declarado: <strong>${fmt(total)}</strong></div>` : ''}
+    </div>
+  `;
+}
+
+function buildOrderHTML(fid, o, idx) {
+  const menuOpts = Object.entries(MENUS).map(([k,v]) =>
+    `<option value="${k}" ${o.menu===k?'selected':''}>${v.label}${k!=='otro'?' — '+fmt(v.price):''}</option>`
+  ).join('');
+  const m = MENUS[o.menu] || MENUS.ejecutivo1;
+  const itemOpts = m.items.map(it => `<option value="${it}" ${o.item===it?'selected':''}>${it}</option>`).join('');
+  const garnOpts = m.garnishes.map(g => `<option value="${g}" ${o.garnish===g?'selected':''}>${g}</option>`).join('');
+  const sauceOpts = m.sauces.map(s => `<option value="${s}" ${o.sauce===s?'selected':''}>${s}</option>`).join('');
+  const isOtro = o.menu === 'otro';
+  const isKids = o.menu === 'deportivo' || o.menu === 'infantil';
+  return `
+    <div class="order-block">
+      <div class="order-block-header">
+        <span class="order-badge">Plato ${idx+1}</span>
+        <button class="btn btn-sm btn-danger" onclick="removeOrder(${fid},${idx})">× Quitar</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Menú</label>
+        <select onchange="updateOrder(${fid},${idx},'menu',this.value)">${menuOpts}</select>
+      </div>
+      ${!isOtro && m.items.length ? `<div class="form-group"><label class="form-label">Plato principal</label><select onchange="updateOrder(${fid},${idx},'item',this.value)"><option value="">— Elegir plato —</option>${itemOpts}</select></div>` : ''}
+      ${!isOtro && m.garnishes.length ? `<div class="form-group"><label class="form-label">Guarnición</label><select onchange="updateOrder(${fid},${idx},'garnish',this.value)"><option value="">— Elegir —</option>${garnOpts}</select></div>` : ''}
+      ${!isOtro && m.sauces.length ? `<div class="form-group"><label class="form-label">Salsa (si aplica)</label><select onchange="updateOrder(${fid},${idx},'sauce',this.value)"><option value="">— N/A —</option>${sauceOpts}</select></div>` : ''}
+      ${isOtro ? `
+        <div class="form-group"><label class="form-label">Descripción del pedido</label><textarea placeholder="Describí qué pediste..." onchange="updateOrder(${fid},${idx},'description',this.value)">${escHtml(o.description||'')}</textarea></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">El precio se cargará desde el ticket en el paso 3.</div>
+      ` : `
+        ${!isKids ? `
+          <div class="sep"></div>
+          <div class="qty-row">
+            <div class="qty-label">Postre adicional <small>${fmt(POSTRE_PRICE)} c/u</small></div>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'postre',Math.max(0,${o.postre||0}-1))">−</button>
+              <span class="qty-num">${o.postre||0}</span>
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'postre',${(o.postre||0)+1})">+</button>
+            </div>
+          </div>
+          <div class="qty-row">
+            <div class="qty-label">Café adicional <small>${fmt(CAFE_PRICE)} c/u</small></div>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'cafe',Math.max(0,${o.cafe||0}-1))">−</button>
+              <span class="qty-num">${o.cafe||0}</span>
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'cafe',${(o.cafe||0)+1})">+</button>
+            </div>
+          </div>
+        ` : ''}
+      `}
+      <div class="form-group" style="margin-top:8px;">
+        <label class="form-label">Bebida (incluida en el menú)</label>
+        <select onchange="updateOrder(${fid},${idx},'bebida',this.value)">
+          <option value="">— Elegir bebida —</option>
+          ${BEBIDAS.map(b=>`<option value="${b}" ${o.bebida===b?'selected':''}>${b}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Comentarios / aclaraciones</label>
+        <input type="text" placeholder="ej: sin sal, extra salsa..." value="${escHtml(o.comments||'')}" onchange="updateOrder(${fid},${idx},'comments',this.value)">
+      </div>
+      <div style="text-align:right;font-size:12px;color:var(--text3);margin-top:6px;">
+        Subtotal: <strong style="color:var(--text);">${fmt(orderTotal(o))}</strong>
+      </div>
+    </div>
+  `;
+}
+
+/* ── Comanda ── */
+function renderComanda() {
+  const container = document.getElementById('comanda-container');
+  if (!container) return;
+  container.innerHTML = '';
+  if (families.length === 0 || families.every(f => f.orders.length === 0)) {
+    container.innerHTML = `<div class="card"><p class="text-muted">No hay pedidos cargados. Volvé al paso anterior.</p></div>`;
+    return;
+  }
+  const grandTotal = families.reduce((s,f) => s + familyTotal(f), 0);
+  const totalPersons = families.reduce((s,f) => s + f.orders.length, 0);
+  container.innerHTML += `
+    <div class="total-summary-card" style="margin-bottom:1.25rem;">
+      <div><div class="label">Total estimado</div><div class="value">${fmt(grandTotal)}</div></div>
+      <div style="text-align:right;"><div class="label">Comensales</div><div class="value" style="font-size:20px;">${totalPersons}</div></div>
+    </div>
+  `;
+  families.forEach(f => {
+    if (f.orders.length === 0) return;
+    let rows = '';
+    f.orders.forEach(o => {
+      const menuLabel = MENUS[o.menu]?.label || 'Otro';
+      const plato = o.menu === 'otro' ? (o.description || '—') : (o.item || '—');
+      const garnish = o.garnish ? `<span style="color:var(--text3)"> · ${o.garnish}</span>` : '';
+      const sauce = o.sauce ? `<span style="color:var(--text3)"> · ${o.sauce}</span>` : '';
+      const bebida = o.bebida ? `<div style="font-size:12px;color:var(--text3);margin-top:1px;">🥤 ${o.bebida}</div>` : '';
+      const extras = [];
+      if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
+      if (o.cafe) extras.push(`${o.cafe} café${o.cafe>1?'s':''}`);
+      const extrasLine = extras.length ? `<div style="font-size:12px;color:var(--text3);margin-top:1px;">+ ${extras.join(', ')}</div>` : '';
+      const comments = o.comments ? `<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px;">"${escHtml(o.comments)}"</div>` : '';
+      rows += `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="font-size:12px;color:var(--text3);margin-bottom:2px;">${escHtml(menuLabel)}</div>
+            <div style="font-size:14px;font-weight:500;">${escHtml(plato)}${garnish}${sauce}</div>
+            ${bebida}${extrasLine}${comments}
+          </div>
+          <div style="font-size:13px;color:var(--text2);margin-left:12px;white-space:nowrap;">${fmt(orderTotal(o))}</div>
+        </div>
+      `;
+    });
+    container.innerHTML += `
+      <div class="result-family-card" style="margin-bottom:1rem;">
+        <div class="result-family-header">
+          <span class="result-family-name">${escHtml(f.name)}</span>
+          <span style="font-size:13px;color:var(--text2);">${f.orders.length} plato${f.orders.length!==1?'s':''} · <strong>${fmt(familyTotal(f))}</strong></span>
+        </div>
+        <div class="result-body" style="padding:0 1.25rem;">
+          ${rows}
+          <div style="display:flex;justify-content:flex-end;padding:8px 0;font-size:13px;color:var(--text3);">
+            Subtotal: <strong style="color:var(--text);margin-left:6px;">${fmt(familyTotal(f))}</strong>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+/* ── Ticket ── */
+window.handleFileUpload = async function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('ticket-preview');
+  const area = document.getElementById('upload-area');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    area.classList.add('has-image');
+    area.querySelector('.upload-title').textContent = '✓ Imagen cargada';
+    area.querySelector('.upload-sub').textContent = 'Tocá para cambiarla';
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      alert('Configurá tu API key de Anthropic para leer el ticket automáticamente.');
+      showTicketCard();
+      return;
+    }
+    await readTicketWithAI(e.target.result, file.type);
+  };
+  reader.readAsDataURL(file);
+};
+
+async function readTicketWithAI(dataUrl, mimeType) {
+  const proc = document.getElementById('processing');
+  proc.classList.add('visible');
+  const base64 = dataUrl.split(',')[1];
+  const validType = mimeType === 'image/png' ? 'image/png' : mimeType === 'image/gif' ? 'image/gif' : mimeType === 'image/webp' ? 'image/webp' : 'image/jpeg';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: validType, data: base64 } },
+          { type: 'text', text: `Analizá este ticket de restaurante. Extraé todos los ítems línea por línea. Respondé ÚNICAMENTE con un JSON válido, sin markdown, sin texto adicional:\n{"items":[{"desc":"nombre","qty":1,"price":0}],"total":0}\nReglas: desc=nombre del ítem, qty=cantidad entera, price=precio UNITARIO en pesos, total=total final (0 si no se ve). Si hay subtotal pero no precio unitario, dividí por qty. No incluyas propina como parte del total.` }
+        ]}]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content.map(b => b.text||'').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    ticketItems = (parsed.items || []).map((it,i) => ({ id:'ti'+(++tickCounter), desc:it.desc||'', qty:parseInt(it.qty)||1, price:parseFloat(it.price)||0 }));
+    if (parsed.total && parsed.total > 0) {
+      ticketTotal = parsed.total;
+      document.getElementById('ticket-total').value = parsed.total;
+    }
+    showTicketCard();
+    renderTicketTable();
+    updateDiffInfo();
+    scheduleSave();
+  } catch(err) {
+    alert('No se pudo leer el ticket: ' + err.message + '\n\nPodés ingresar los ítems manualmente.');
+    showTicketCard();
+  } finally {
+    proc.classList.remove('visible');
+  }
+}
+
+function showTicketCard() { document.getElementById('ticket-items-card').style.display = 'block'; }
+
+window.addTicketItemRow = function() {
+  ticketItems.push({ id:'ti'+(++tickCounter), desc:'', qty:1, price:0 });
+  showTicketCard();
+  renderTicketTable();
+  scheduleSave();
+};
+
+function renderTicketTable() {
+  const tbody = document.getElementById('ticket-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = ticketItems.map(it => `
+    <tr>
+      <td><input type="text" value="${escHtml(it.desc)}" placeholder="Descripción…" onchange="updateTicketItem('${it.id}','desc',this.value)" style="width:100%;"></td>
+      <td><input type="number" value="${it.qty}" min="1" style="width:55px;" onchange="updateTicketItem('${it.id}','qty',parseInt(this.value)||1)"></td>
+      <td><input type="number" value="${it.price}" placeholder="0" onchange="updateTicketItem('${it.id}','price',parseFloat(this.value)||0)"></td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeTicketItem('${it.id}')">×</button></td>
+    </tr>
+  `).join('');
+  updateDiffInfo();
+}
+
+window.updateTicketItem = function(id, key, val) {
+  const it = ticketItems.find(x=>x.id===id);
+  if (it) { it[key]=val; updateDiffInfo(); scheduleSave(); }
+};
+
+window.removeTicketItem = function(id) {
+  ticketItems = ticketItems.filter(x=>x.id!==id);
+  renderTicketTable();
+  scheduleSave();
+};
+
+function ticketItemsSum() { return ticketItems.reduce((s,it) => s+(it.price*it.qty), 0); }
+
+window.onTicketTotalChange = function() {
+  ticketTotal = parseFloat(document.getElementById('ticket-total').value)||0;
+  updateDiffInfo();
+  scheduleSave();
+};
+
+function updateDiffInfo() {
+  const sum = ticketItemsSum();
+  const info = document.getElementById('diff-info');
+  if (!info) return;
+  const tt = ticketTotal || sum;
+  if (ticketItems.length > 0 || tt > 0) {
+    const diff = tt - sum;
+    if (tt > 0 && Math.abs(diff) > 50) {
+      info.innerHTML = `Suma de ítems: <strong>${fmt(sum)}</strong> · Diferencia: <strong style="color:var(--warning);">${fmt(diff)}</strong>`;
+    } else if (tt > 0) {
+      info.innerHTML = `<span style="color:var(--success);">✓ Suma coincide (${fmt(sum)})</span>`;
+    } else {
+      info.innerHTML = `Suma de ítems: <strong>${fmt(sum)}</strong>`;
+    }
+  } else { info.innerHTML = ''; }
+}
+
+/* ── Validation ── */
+function getExpandedUnits() {
+  const units = [];
+  ticketItems.forEach(it => {
+    for (let i = 0; i < (it.qty||1); i++) {
+      units.push({ unitId:`${it.id}__${i}`, itemId:it.id, desc:it.desc, price:it.price, unitIndex:i, totalUnits:it.qty||1 });
+    }
+  });
+  return units;
+}
+
+window.removeOrderFromValidation = function(familyId, orderIdx) {
+  const f = families.find(x=>x.id===familyId);
+  if (!f) return;
+  f.orders.splice(orderIdx, 1);
+  renderValidation();
+  saveFamilyNode(f);
+};
+
+window.toggleFamilyForUnit = function(unitId, familyId, checked) {
+  const current = manualAssignments[unitId] ? [...manualAssignments[unitId]] : [];
+  const fid = parseInt(familyId);
+  if (checked) {
+    if (!current.includes(fid)) current.push(fid);
+  } else {
+    const idx = current.indexOf(fid);
+    if (idx > -1) current.splice(idx, 1);
+  }
+  if (current.length === 0) delete manualAssignments[unitId];
+  else manualAssignments[unitId] = current;
+  renderValidation();
+  scheduleSave();
+};
+
+function renderValidation() {
+  const container = document.getElementById('validation-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Family summary
+  let html = `<div class="card"><div class="card-title">Resumen de pedidos por familia</div>`;
+  if (families.length === 0) {
+    html += `<p class="text-muted">No hay familias cargadas.</p>`;
+  } else {
+    families.forEach(f => {
+      html += `
+        <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-family:'Playfair Display',serif;font-size:16px;">${escHtml(f.name)}</span>
+            <span style="font-size:13px;color:var(--text2);">Subtotal: <strong>${fmt(familyTotal(f))}</strong></span>
+          </div>
+          ${f.orders.length === 0
+            ? `<p style="font-size:12px;color:var(--text3);">Sin platos.</p>`
+            : f.orders.map((o,i) => {
+                const label = o.menu==='otro' ? (o.description||'Otro') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+                const bebida = o.bebida ? ` <span style="color:var(--text3);font-size:11px;">(${o.bebida})</span>` : '';
+                const extras = [];
+                if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
+                if (o.cafe) extras.push(`${o.cafe} café${o.cafe>1?'s':''}`);
+                return `
+                  <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+                    <div style="flex:1;font-size:13px;color:var(--text2);">
+                      ${escHtml(label)}${bebida}${extras.length?` <span style="font-size:11px;color:var(--text3);">[${extras.join(', ')}]</span>`:''}${o.comments?` <span style="font-size:11px;color:var(--text3);">"${escHtml(o.comments)}"</span>`:''}
+                    </div>
+                    <span style="font-size:13px;white-space:nowrap;">${fmt(orderTotal(o))}</span>
+                    <button class="btn btn-sm btn-danger" onclick="removeOrderFromValidation(${f.id},${i})">× Quitar</button>
+                  </div>`;
+              }).join('')
+          }
+        </div>
+      `;
+    });
+  }
+  html += `</div>`;
+  container.innerHTML += html;
+
+  if (ticketItems.length === 0) {
+    container.innerHTML += `<div class="card"><div class="card-title">Ítems del ticket</div><p class="text-muted">No hay ítems cargados en el ticket.</p></div>`;
+    return;
+  }
+
+  const tt = ticketTotal || ticketItemsSum();
+  const units = getExpandedUnits();
+  const assigned = [], unassigned = [];
+  units.forEach(u => {
+    const assignedFamilies = manualAssignments[u.unitId];
+    if (assignedFamilies && assignedFamilies.length > 0) assigned.push({...u, assignedFamilies});
+    else unassigned.push(u);
+  });
+
+  // Helper: render family checkboxes for a unit
+  function familyCheckboxes(unitId, selectedIds=[]) {
+    return families.map(f => `
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:3px 6px;border-radius:6px;background:${selectedIds.includes(f.id)?'var(--accent-light)':'transparent'};border:1px solid ${selectedIds.includes(f.id)?'var(--accent-border)':'transparent'};">
+        <input type="checkbox" ${selectedIds.includes(f.id)?'checked':''} onchange="toggleFamilyForUnit('${unitId}',${f.id},this.checked)" style="width:auto;margin:0;">
+        ${escHtml(f.name)}
+      </label>
+    `).join('');
+  }
+
+  // Assigned items
+  let assignedHTML = `<div class="card"><div class="card-title" style="margin-bottom:0.5rem;">Ítems del ticket asignados (${assigned.length})</div>`;
+  if (assigned.length === 0) {
+    assignedHTML += `<p class="text-muted">Ningún ítem asignado aún.</p>`;
+  } else {
+    assigned.forEach(u => {
+      const label = u.totalUnits > 1 ? `${escHtml(u.desc)} <span style="color:var(--text3);font-size:11px;">(unidad ${u.unitIndex+1} de ${u.totalUnits})</span>` : escHtml(u.desc);
+      const splitAmt = u.assignedFamilies.length > 1 ? ` <span style="font-size:11px;color:var(--accent);">÷${u.assignedFamilies.length} = ${fmt(u.price/u.assignedFamilies.length)} c/u</span>` : '';
+      assignedHTML += `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;font-weight:500;">${label}</span>
+            <span style="font-size:12px;color:var(--text3);">${fmt(u.price)}${splitAmt}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${familyCheckboxes(u.unitId, u.assignedFamilies)}</div>
+        </div>`;
+    });
+  }
+  assignedHTML += `</div>`;
+  container.innerHTML += assignedHTML;
+
+  // Unassigned items
+  if (unassigned.length > 0) {
+    let uHTML = `<div class="card" style="border-color:#f0d080;background:var(--warning-bg);">
+      <div class="card-title" style="color:var(--warning);margin-bottom:0.5rem;">⚠ Ítems sin asignar (${unassigned.length})</div>
+      <p style="font-size:12px;color:var(--warning);margin-bottom:10px;">Marcá las familias que comparten cada ítem. Si lo comparten, el costo se divide en partes iguales.</p>`;
+    unassigned.forEach(u => {
+      const label = u.totalUnits > 1 ? `${escHtml(u.desc)} <span style="font-size:11px;">(unidad ${u.unitIndex+1} de ${u.totalUnits})</span>` : escHtml(u.desc);
+      uHTML += `
+        <div style="padding:10px 0;border-bottom:1px solid #f0d080;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;font-weight:500;">${label}</span>
+            <span style="font-size:12px;color:var(--text2);">${fmt(u.price)}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${familyCheckboxes(u.unitId, [])}</div>
+        </div>`;
+    });
+    uHTML += `</div>`;
+    container.innerHTML += uHTML;
+  } else {
+    container.innerHTML += `<div style="background:var(--success-bg);border:1px solid #a8d5be;border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--success);margin-bottom:1rem;">✓ Todos los ítems del ticket están asignados.</div>`;
+  }
+
+  const assignedTotal = assigned.reduce((s,u)=>s+u.price, 0);
+  container.innerHTML += `
+    <div class="card">
+      <div class="card-title">Resumen de totales</div>
+      <div style="font-size:13px;color:var(--text2);">
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);"><span>Total del ticket</span><strong>${fmt(tt)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);"><span>Ítems asignados</span><strong>${fmt(assignedTotal)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Sin asignar</span><strong style="color:${unassigned.length>0?'var(--warning)':'var(--success)'};">${fmt(unassigned.reduce((s,u)=>s+u.price,0))}</strong></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ── Results ── */
+function renderResults() {
+  const container = document.getElementById('results-container');
+  if (!container) return;
+  container.innerHTML = '';
+  const tt = ticketTotal || ticketItemsSum();
+  const allUnits = getExpandedUnits();
+
+  // Build extra per family from manualAssignments (split equally among assigned families)
+  const extraPerFamily = {};
+  families.forEach(f => { extraPerFamily[f.id] = 0; });
+  Object.entries(manualAssignments).forEach(([unitId, familyIds]) => {
+    const u = allUnits.find(x=>x.unitId===unitId);
+    if (!u || !familyIds || familyIds.length === 0) return;
+    const share = u.price / familyIds.length;
+    familyIds.forEach(fid => {
+      if (extraPerFamily[fid] !== undefined) extraPerFamily[fid] += share;
+    });
+  });
+
+  const declaredTotal = families.reduce((s,f) => s+familyTotal(f)+(extraPerFamily[f.id]||0), 0);
+
+  if (tt > 0) {
+    container.innerHTML += `
+      <div class="total-summary-card">
+        <div><div class="label">Total del ticket</div><div class="value">${fmt(tt)}</div></div>
+        <div style="text-align:right;"><div class="label">Familias</div><div class="value" style="font-size:20px;">${families.length}</div></div>
+      </div>`;
+  }
+
+  const diff = tt - declaredTotal;
+  if (Math.abs(diff) > 100 && tt > 0) {
+    container.innerHTML += `<div class="diff-banner"><strong>Diferencia de ${fmt(Math.abs(diff))}</strong>Ticket: ${fmt(tt)} · Asignado: ${fmt(declaredTotal)}. ${diff > 0 ? 'Hay ítems sin asignar.' : 'Lo asignado supera el ticket.'}</div>`;
+  }
+
+  families.forEach(f => {
+    const base = familyTotal(f) + (extraPerFamily[f.id]||0);
+    const pct = declaredTotal > 0 ? base/declaredTotal : 1/Math.max(families.length,1);
+    const finalAmount = tt > 0 && declaredTotal > 0 ? tt * pct : base;
+
+    const orderLines = f.orders.map(o => {
+      const label = o.menu==='otro'?(o.description||'Otro'):(MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+      const bev = o.bebida?` <span style="color:var(--text3);font-size:11px;">(${o.bebida})</span>`:'';
+      return `<div class="result-line"><span>${escHtml(label)}${bev}</span><span>${fmt(orderTotal(o))}</span></div>`;
+    }).join('');
+
+    // Extra lines from ticket assignments
+    const extraLines = Object.entries(manualAssignments)
+      .filter(([,fids]) => Array.isArray(fids) && fids.includes(f.id))
+      .map(([uid, fids]) => {
+        const u = allUnits.find(x=>x.unitId===uid);
+        if (!u) return '';
+        const suf = u.totalUnits>1?` (${u.unitIndex+1}/${u.totalUnits})`:'';
+        const share = u.price / fids.length;
+        const splitNote = fids.length > 1 ? ` <span style="font-size:11px;color:var(--accent);">÷${fids.length}</span>` : '';
+        return `<div class="result-line extra"><span>+ ${escHtml(u.desc)}${suf}${splitNote}</span><span>${fmt(share)}</span></div>`;
+      }).join('');
+
+    container.innerHTML += `
+      <div class="result-family-card">
+        <div class="result-family-header">
+          <span class="result-family-name">${escHtml(f.name)}</span>
+          <span class="result-amount">${fmt(Math.round(finalAmount))}</span>
+        </div>
+        <div class="result-body">
+          ${orderLines}${extraLines}
+          ${tt>0&&declaredTotal>0?`<span class="result-pct">${(pct*100).toFixed(1)}% del total</span>`:''}
+        </div>
+      </div>`;
+  });
+}
+
+/* ── Helpers ── */
+function orderTotal(o) {
+  if (o.menu==='otro') return o.price||0;
+  return (MENUS[o.menu]?.price||0) + (o.postre||0)*POSTRE_PRICE + (o.cafe||0)*CAFE_PRICE;
+}
+function familyTotal(f) { return f.orders.reduce((s,o)=>s+orderTotal(o),0); }
+function fmt(n) { return '$'+Math.round(n).toLocaleString('es-AR'); }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+window.resetAll = async function() {
+  if (!confirm('¿Reiniciar toda la mesa? Se borrarán todos los datos para todos los dispositivos.')) return;
+  families=[]; ticketItems=[]; manualAssignments={}; ticketTotal=0;
+  document.getElementById('ticket-total').value='';
+  document.getElementById('ticket-preview').style.display='none';
+  const ua = document.getElementById('upload-area');
+  ua.classList.remove('has-image');
+  ua.querySelector('.upload-title').textContent='Tocá para sacar foto o subir imagen';
+  ua.querySelector('.upload-sub').textContent='JPG, PNG o HEIC — el ticket se lee automáticamente con IA';
+  document.getElementById('ticket-items-card').style.display='none';
+  document.getElementById('file-input').value='';
+  await set(ref(db, `sessions/${sessionCode}`), {
+    families: {}, ticketItems: [], manualAssignments: {}, ticketTotal: 0, updatedAt: Date.now()
+  });
+  window.goStep(1);
+};
+
+/* ── Init ── */
+document.getElementById('btn-create').disabled = false;
+document.getElementById('btn-join').disabled = false;
+
+const savedSession = localStorage.getItem('buch_session');
+if (savedSession) {
+  const rejoin = confirm(`¿Querés volver a la mesa anterior (${savedSession})?`);
+  if (rejoin) startSession(savedSession);
+}
+
+</script>
+</body>
+</html>
