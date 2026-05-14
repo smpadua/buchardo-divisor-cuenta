@@ -368,6 +368,7 @@ function getDeviceId() {
 const deviceId = getDeviceId();
 
 window.createSession = async function() {
+  const code = generateCode();
   const sessionRef = ref(db, `sessions/${code}`);
   await set(sessionRef, { families: [], ticketItems: [], manualAssignments: {}, ticketTotal: 0, createdAt: Date.now() });
   startSession(code);
