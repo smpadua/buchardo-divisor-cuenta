@@ -329,7 +329,7 @@ const MENUS = {
   ejecutivo1: { label: 'Menú Ejecutivo 1', price: 20000, items: ['Bife de costilla','Bife de cuadril','Ravioles de ricota','Ravioles de verdura'], garnishes: ['Fritas','Puré','Ensalada'], sauces: ['Salsa rosa','Crema','Filetto'] },
   ejecutivo2: { label: 'Menú Ejecutivo 2', price: 18000, items: ['Merluza a la romana con puré','Ensalada César grande','Pasta seca','Pizza individual de muzzarella con fainá','¼ de pollo con guarnición'], garnishes: [], sauces: ['Crema','Filetto','Rosa'] },
   socios:     { label: 'Menú Socios', price: 17000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
-  infantil:   { label: 'Menú Infantil (hasta 10 años)', price: 13000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
+  infantil:   { label: 'Menú Infantil (hasta 10 años)', price: 13000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Penne rigatti con salsa','Milanesa con guarnición','Suprema de pollo con guarnición','Nuggets de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
   otro: { label: 'Otro (precio libre)', price: 0, items: [], garnishes: [], sauces: [] }
 };
 const POSTRE_PRICE = 5500;
@@ -557,6 +557,14 @@ window.clearApiKey = function() {
 function getApiKey() { return localStorage.getItem('buch_apikey') || ''; }
 
 /* ── Families ── */
+window.toggleFamilyReady = function(id) {
+  const f = families.find(x => x.id === id);
+  if (!f) return;
+  f.ready = !f.ready;
+  renderFamilies();
+  saveFamilyNode(f);
+};
+
 window.addFamily = function() {
   const newId = Date.now();
   const newFamily = { id: newId, name: 'Familia', orders: [], ownerId: deviceId };
@@ -614,32 +622,41 @@ function renderFamilies() {
 function buildFamilyHTML(f) {
   const total = familyTotal(f);
   const isOwner = !f.ownerId || f.ownerId === deviceId;
-  const ordersHTML = f.orders.map((o,i) => buildOrderHTML(f.id, o, i, isOwner)).join('');
+  const isReady = !!f.ready;
+  const ordersHTML = f.orders.map((o,i) => buildOrderHTML(f.id, o, i, isOwner && !isReady)).join('');
   return `
-    <div class="family-header">
+    <div class="family-card" style="${isReady ? 'border-color:#a8d5be;' : ''}">
+    <div class="family-header" style="${isReady ? 'background:var(--success-bg);' : ''}">
       <div style="display:flex;align-items:center;gap:8px;">
-        ${isOwner
+        ${isOwner && !isReady
           ? `<input class="family-name-input" value="${escHtml(f.name)}" onchange="updateFamilyName(${f.id},this.value)" placeholder="Nombre de familia">`
           : `<span style="font-family:'Playfair Display',serif;font-size:17px;color:var(--text);">${escHtml(f.name)}</span>`
         }
         ${!isOwner ? `<span style="font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:2px 8px;">🔒 otro dispositivo</span>` : ''}
+        ${isReady ? `<span style="font-size:11px;color:var(--success);background:var(--success-bg);border:1px solid #a8d5be;border-radius:99px;padding:2px 8px;">✓ Pedido listo</span>` : ''}
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
         <span style="font-size:12px;color:var(--text3);">${f.orders.length} plato${f.orders.length!==1?'s':''}</span>
-        ${isOwner ? `<button class="btn btn-sm btn-danger" onclick="removeFamily(${f.id})">Eliminar</button>` : ''}
+        ${isOwner ? `
+          <button class="btn btn-sm ${isReady ? '' : 'btn-accent'}" onclick="toggleFamilyReady(${f.id})">
+            ${isReady ? '✏️ Editar pedido' : '✓ Listo pedido'}
+          </button>
+          ${!isReady ? `<button class="btn btn-sm btn-danger" onclick="removeFamily(${f.id})">Eliminar</button>` : ''}
+        ` : ''}
       </div>
     </div>
     <div class="family-body">
-      ${ordersHTML}
-      ${isOwner ? `<button class="btn-dashed" style="margin-top:4px;" onclick="addOrder(${f.id})">+ Agregar plato</button>` : ''}
+      ${isReady && isOwner ? `<p style="font-size:13px;color:var(--success);padding:8px 0;">Pedido confirmado. Tocá "Editar pedido" para hacer cambios.</p>` : ordersHTML}
+      ${isOwner && !isReady ? `<button class="btn-dashed" style="margin-top:4px;" onclick="addOrder(${f.id})">+ Agregar plato</button>` : ''}
       ${f.orders.length>0 ? `<div class="family-total-line">Total declarado: <strong>${fmt(total)}</strong></div>` : ''}
+    </div>
     </div>
   `;
 }
 
 function buildOrderHTML(fid, o, idx, isOwner=true) {
   if (!isOwner) {
-    const label = o.menu==='otro' ? (o.description||'Otro') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+    const label = o.menu==='otro' ? (o.otroItem && o.otroItem!=='otro_libre' ? o.otroItem : (o.description||'Otro')) : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
     const bebida = o.bebida ? ` · 🥤 ${o.bebida}` : '';
     return `<div class="order-block" style="opacity:0.7;">
       <div style="font-size:13px;color:var(--text2);">${escHtml(label)}${bebida}</div>
@@ -669,8 +686,19 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
       ${!isOtro && m.garnishes.length ? `<div class="form-group"><label class="form-label">Guarnición</label><select onchange="updateOrder(${fid},${idx},'garnish',this.value)"><option value="">— Elegir —</option>${garnOpts}</select></div>` : ''}
       ${!isOtro && m.sauces.length ? `<div class="form-group"><label class="form-label">Salsa (si aplica)</label><select onchange="updateOrder(${fid},${idx},'sauce',this.value)"><option value="">— N/A —</option>${sauceOpts}</select></div>` : ''}
       ${isOtro ? `
-        <div class="form-group"><label class="form-label">Descripción del pedido</label><textarea placeholder="Describí qué pediste..." onchange="updateOrder(${fid},${idx},'description',this.value)">${escHtml(o.description||'')}</textarea></div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">El precio se cargará desde el ticket en el paso 3.</div>
+        <div class="form-group">
+          <label class="form-label">Opción</label>
+          <select onchange="updateOrder(${fid},${idx},'otroItem',this.value)">
+            <option value="">— Elegir opción —</option>
+            <option value="Buñuelos de Espinaca" ${o.otroItem==='Buñuelos de Espinaca'?'selected':''}>Buñuelos de Espinaca — ${fmt(18000)}</option>
+            <option value="Muzzarelitas con salsa" ${o.otroItem==='Muzzarelitas con salsa'?'selected':''}>Muzzarelitas con salsa — ${fmt(15000)}</option>
+            <option value="otro_libre" ${o.otroItem==='otro_libre'?'selected':''}>Otro (precio libre)</option>
+          </select>
+        </div>
+        ${o.otroItem === 'otro_libre' ? `
+          <div class="form-group"><label class="form-label">Descripción</label><textarea placeholder="Describí qué pediste..." onchange="updateOrder(${fid},${idx},'description',this.value)">${escHtml(o.description||'')}</textarea></div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">El precio se cargará desde el ticket en el paso 3.</div>
+        ` : ''}
       ` : `
           <div class="sep"></div>
           <div class="qty-row">
@@ -961,7 +989,7 @@ function renderValidation() {
           ${f.orders.length === 0
             ? `<p style="font-size:12px;color:var(--text3);">Sin platos.</p>`
             : f.orders.map((o,i) => {
-                const label = o.menu==='otro' ? (o.description||'Otro') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+                const label = o.menu==='otro' ? (o.otroItem && o.otroItem!=='otro_libre' ? o.otroItem : (o.description||'Otro')) : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
                 const bebida = o.bebida ? ` <span style="color:var(--text3);font-size:11px;">(${o.bebida})</span>` : '';
                 const extras = [];
                 if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
@@ -1139,7 +1167,11 @@ function renderResults() {
 
 /* ── Helpers ── */
 function orderTotal(o) {
-  if (o.menu==='otro') return o.price||0;
+  if (o.menu==='otro') {
+    if (o.otroItem === 'Buñuelos de Espinaca') return 18000;
+    if (o.otroItem === 'Muzzarelitas con salsa') return 15000;
+    return o.price||0;
+  }
   return (MENUS[o.menu]?.price||0) + (o.postre||0)*POSTRE_PRICE + (o.cafe||0)*CAFE_PRICE + (o.ddl||0)*DDL_PRICE + (o.mixto||0)*MIXTO_PRICE;
 }
 function familyTotal(f) { return f.orders.reduce((s,o)=>s+orderTotal(o),0); }
