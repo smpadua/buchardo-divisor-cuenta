@@ -217,8 +217,8 @@
 
     <!-- STEP 1 -->
     <div class="panel active" id="step1">
+      <button class="btn-dashed" style="margin-bottom:1rem;" onclick="addFamily()">+ Agregar familia</button>
       <div id="families-container"></div>
-      <button class="btn-dashed" onclick="addFamily()">+ Agregar familia</button>
       <div class="actions">
         <button class="btn btn-primary" onclick="goStep(2)">Ver comanda →</button>
       </div>
@@ -334,6 +334,8 @@ const MENUS = {
 };
 const POSTRE_PRICE = 5500;
 const CAFE_PRICE = 3500;
+const DDL_PRICE = 3500;
+const MIXTO_PRICE = 4500;
 const BEBIDAS = ['Agua sin gas','Agua con gas','Pepsi','Pepsi Black','Seven Up','Seven Up Free'];
 
 /* ── State ── */
@@ -577,7 +579,7 @@ window.updateFamilyName = function(id, val) {
 window.addOrder = function(fid) {
   const f = families.find(x => x.id === fid);
   if (f) {
-    f.orders.push({ menu:'ejecutivo1', item:'', garnish:'', sauce:'', bebida:'', postre:0, cafe:0, comments:'', description:'', price:0 });
+    f.orders.push({ menu:'ejecutivo1', item:'', garnish:'', sauce:'', bebida:'', postre:0, cafe:0, ddl:0, mixto:0, comments:'', description:'', price:0 });
     renderFamilies();
     saveFamilyNode(f);
   }
@@ -670,7 +672,6 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
         <div class="form-group"><label class="form-label">Descripción del pedido</label><textarea placeholder="Describí qué pediste..." onchange="updateOrder(${fid},${idx},'description',this.value)">${escHtml(o.description||'')}</textarea></div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">El precio se cargará desde el ticket en el paso 3.</div>
       ` : `
-        ${!isKids ? `
           <div class="sep"></div>
           <div class="qty-row">
             <div class="qty-label">Postre adicional <small>${fmt(POSTRE_PRICE)} c/u</small></div>
@@ -688,7 +689,22 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
               <button class="qty-btn" onclick="updateOrder(${fid},${idx},'cafe',${(o.cafe||0)+1})">+</button>
             </div>
           </div>
-        ` : ''}
+          <div class="qty-row">
+            <div class="qty-label">Adicional Dulce de leche <small>${fmt(DDL_PRICE)} c/u</small></div>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'ddl',Math.max(0,${o.ddl||0}-1))">−</button>
+              <span class="qty-num">${o.ddl||0}</span>
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'ddl',${(o.ddl||0)+1})">+</button>
+            </div>
+          </div>
+          <div class="qty-row">
+            <div class="qty-label">Adicional Mixto <small>${fmt(MIXTO_PRICE)} c/u</small></div>
+            <div class="qty-ctrl">
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'mixto',Math.max(0,${o.mixto||0}-1))">−</button>
+              <span class="qty-num">${o.mixto||0}</span>
+              <button class="qty-btn" onclick="updateOrder(${fid},${idx},'mixto',${(o.mixto||0)+1})">+</button>
+            </div>
+          </div>
       `}
       <div class="form-group" style="margin-top:8px;">
         <label class="form-label">Bebida (incluida en el menú)</label>
@@ -737,6 +753,8 @@ function renderComanda() {
       const extras = [];
       if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
       if (o.cafe) extras.push(`${o.cafe} café${o.cafe>1?'s':''}`);
+      if (o.ddl) extras.push(`${o.ddl} ddl${o.ddl>1?'s':''}`);
+      if (o.mixto) extras.push(`${o.mixto} mixto${o.mixto>1?'s':''}`);
       const extrasLine = extras.length ? `<div style="font-size:12px;color:var(--text3);margin-top:1px;">+ ${extras.join(', ')}</div>` : '';
       const comments = o.comments ? `<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:1px;">"${escHtml(o.comments)}"</div>` : '';
       rows += `
@@ -948,6 +966,8 @@ function renderValidation() {
                 const extras = [];
                 if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
                 if (o.cafe) extras.push(`${o.cafe} café${o.cafe>1?'s':''}`);
+                if (o.ddl) extras.push(`${o.ddl} ddl${o.ddl>1?'s':''}`);
+                if (o.mixto) extras.push(`${o.mixto} mixto${o.mixto>1?'s':''}`);
                 return `
                   <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
                     <div style="flex:1;font-size:13px;color:var(--text2);">
@@ -1120,7 +1140,7 @@ function renderResults() {
 /* ── Helpers ── */
 function orderTotal(o) {
   if (o.menu==='otro') return o.price||0;
-  return (MENUS[o.menu]?.price||0) + (o.postre||0)*POSTRE_PRICE + (o.cafe||0)*CAFE_PRICE;
+  return (MENUS[o.menu]?.price||0) + (o.postre||0)*POSTRE_PRICE + (o.cafe||0)*CAFE_PRICE + (o.ddl||0)*DDL_PRICE + (o.mixto||0)*MIXTO_PRICE;
 }
 function familyTotal(f) { return f.orders.reduce((s,o)=>s+orderTotal(o),0); }
 function fmt(n) { return '$'+Math.round(n).toLocaleString('es-AR'); }
