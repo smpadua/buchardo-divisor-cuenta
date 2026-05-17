@@ -330,8 +330,153 @@ const MENUS = {
   ejecutivo2: { label: 'Menú Ejecutivo 2', price: 18000, items: ['Merluza a la romana con puré','Ensalada César grande','Pasta seca','Pizza individual de muzzarella con fainá','¼ de pollo con guarnición'], garnishes: [], sauces: ['Crema','Filetto','Rosa'] },
   socios:     { label: 'Menú Socios', price: 17000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
   infantil:   { label: 'Menú Infantil (hasta 10 años)', price: 13000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Penne rigatti con salsa','Milanesa con guarnición','Suprema de pollo con guarnición','Nuggets de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
-  otro: { label: 'Otro (precio libre)', price: 0, items: [], garnishes: [], sauces: [] }
+  libre: { label: 'Menú Libre', price: 0, items: [], garnishes: [], sauces: [] }
 };
+
+const MENU_LIBRE_CATEGORIAS = [
+  { cat: 'Bebidas sin alcohol', items: [
+    { name: 'Agua', price: 2500 },
+    { name: 'Gaseosa', price: 3000 },
+    { name: 'H2O', price: 3000 },
+    { name: 'Gatorade', price: 3500 },
+    { name: 'Jugo Cepita / Chocolatada', price: 2500 },
+    { name: 'Limonada', price: 6000 },
+    { name: 'Jarra de limonada', price: 16000 },
+  ]},
+  { cat: 'Cervezas', items: [
+    { name: 'Corona 0.0% (330cc)', price: 5500 },
+    { name: 'Stella Artois 0.0% (473cc)', price: 4000 },
+    { name: 'Michelob Ultra (473cc)', price: 4000 },
+    { name: 'Stella Artois Pinta (540ml)', price: 6000 },
+    { name: 'Patagonia Pinta (540ml)', price: 7000 },
+    { name: 'Andes litro', price: 11000 },
+    { name: 'Stella Artois de litro', price: 12000 },
+    { name: 'Corona (710ml)', price: 13000 },
+  ]},
+  { cat: 'Aperitivos por botella', items: [
+    { name: 'Vermú La Fuerza (1 botella + 2 sifones o 4 latas)', price: 50000 },
+    { name: 'Fernet Branca (1 botella + 4 gaseosas)', price: 55000 },
+    { name: 'Gin Sur (1 botella + 4 latas de tónica/pomelo)', price: 52000 },
+  ]},
+  { cat: 'Cafetería', items: [
+    { name: 'Café / Cortado', price: 3500 },
+    { name: 'Café jarro / Cortado jarro / Lágrima jarro', price: 4500 },
+    { name: 'Café doble / Café con leche / Lágrima doble', price: 5500 },
+    { name: 'Té', price: 3500 },
+    { name: 'Té con leche', price: 4000 },
+  ]},
+  { cat: 'Entradas frías', items: [
+    { name: 'Bocconcino Arrivata con tomate seco y albahaca', price: 17000 },
+    { name: 'Bocconcino Arrivata con tomate seco, albahaca y jamón crudo', price: 19000 },
+    { name: 'Burrata Arrivata con rúcula, pesto y tomate seco', price: 22000 },
+    { name: 'Burrata Arrivata, rúcula, pesto, tomate seco y jamón crudo', price: 25000 },
+    { name: 'Vitel toné', price: 17500 },
+    { name: 'Bresaola con rúcula, alcaparras y queso', price: 17000 },
+    { name: 'Matambre arrollado casero con ensalada rusa', price: 21000 },
+  ]},
+  { cat: 'Entradas calientes', items: [
+    { name: 'Tortilla de papa y cebolla chica', price: 22000 },
+    { name: 'Tortilla de papa y cebolla grande', price: 28000 },
+    { name: 'Tortilla a la española chica', price: 24000 },
+    { name: 'Tortilla a la española grande', price: 31000 },
+    { name: 'Buñuelos de espinaca', price: 18000 },
+    { name: 'Muzzarellas a la milanesa', price: 15000 },
+  ]},
+  { cat: 'Entradas de mar', items: [
+    { name: 'Rabas', price: 22000 },
+    { name: 'Cornalitos', price: 14500 },
+    { name: 'Calamaretti', price: 21000 },
+    { name: 'Langostinos empanados', price: 24000 },
+    { name: 'Boquerones', price: 19000 },
+    { name: 'Langostinos al ajillo', price: 28000 },
+  ]},
+  { cat: 'Pasta casera', items: [
+    { name: 'Ñoquis de papa', price: 16000 },
+    { name: 'Ravioles de espinaca o ricota', price: 19000 },
+    { name: 'Sorrentinos de jamón y queso', price: 20000 },
+    { name: 'Fetuccini', price: 16000 },
+    { name: 'Fusilli al fierrito', price: 16000 },
+    { name: 'Sorrentinos de la casa', price: 20000 },
+  ]},
+  { cat: 'Pasta seca italiana', items: [
+    { name: 'Spaghetti', price: 16000 },
+    { name: 'Spaghetti sin gluten', price: 17000 },
+    { name: 'Penne rigate', price: 16000 },
+  ]},
+  { cat: 'Salsas (pasta)', items: [
+    { name: 'Fileto', price: 8000 },
+    { name: 'Crema', price: 8000 },
+    { name: 'Rosa', price: 9000 },
+    { name: 'Pesto', price: 9000 },
+    { name: 'Pesto y crema', price: 11000 },
+    { name: 'Scarparo (fileto, albahaca, crema)', price: 9000 },
+    { name: 'Scroffa (fileto, crema, orégano, gratinada)', price: 9000 },
+    { name: 'Bolognesa de la casa', price: 12000 },
+    { name: 'Cuatro quesos', price: 10000 },
+    { name: 'Estofado de carne', price: 12000 },
+  ]},
+  { cat: 'Parrilla', items: [
+    { name: 'Chorizo La Divisa', price: 8000 },
+    { name: 'Morcilla La Divisa', price: 8000 },
+    { name: 'Chorizo y Morcilla La Divisa', price: 15000 },
+    { name: 'Molleja entera', price: 25000 },
+    { name: 'Provoleta Santa Rosa', price: 20000 },
+    { name: 'Bife de lomo 350g', price: 38000 },
+    { name: 'Bife de lomo en torre a la sal 500g', price: 46000 },
+    { name: 'Bife de chorizo 400g', price: 38000 },
+    { name: 'Entraña 450g', price: 38000 },
+    { name: 'Tapa de ojo de bife 500g', price: 42000 },
+    { name: 'Asado banderita del centro 500g', price: 35000 },
+    { name: 'Brochette de lomo con papas rejilla', price: 32000 },
+    { name: 'Matambrito de cerdo con salsa criolla y papas rejilla', price: 28000 },
+  ]},
+  { cat: 'Pollo', items: [
+    { name: '¼ Pollo grillado con guarnición', price: 16000 },
+    { name: '¼ Pollo al champiñón con papas noisette', price: 20000 },
+    { name: '¼ Pollo al verdeo con papas noisette', price: 19000 },
+    { name: 'Nuggets de pollo (8 unidades) con guarnición', price: 15500 },
+  ]},
+  { cat: 'Pesca', items: [
+    { name: 'Abadejo grillado', price: 31000 },
+    { name: 'Abadejo al limón', price: 32000 },
+    { name: 'Abadejo al roquefort', price: 35500 },
+    { name: 'Trucha salmonada 800g (para compartir)', price: 40000 },
+    { name: 'Trucha salmonada con crema de hongos 800g (para compartir)', price: 45000 },
+  ]},
+  { cat: 'Milanesa con guarnición', items: [
+    { name: 'Milanesa de lomo con spaghetti', price: 33000 },
+    { name: 'Milanesa con fritas o puré', price: 18000 },
+    { name: 'Milanesa napolitana con fritas o puré', price: 20000 },
+    { name: 'Suprema con fritas o puré', price: 17000 },
+    { name: 'Suprema napolitana con fritas o puré', price: 19500 },
+  ]},
+  { cat: 'Ensaladas', items: [
+    { name: 'Ensalada chica (3 ingredientes simples)', price: 12000 },
+    { name: 'Ensalada grande (5 ingredientes simples)', price: 15000 },
+  ]},
+  { cat: 'Guarniciones / Porciones', items: [
+    { name: 'Papas fritas', price: 10000 },
+    { name: 'Puré de papas / calabaza / mixto', price: 8000 },
+    { name: 'Arroz blanco', price: 8000 },
+    { name: 'Arroz gratinado', price: 11000 },
+    { name: 'Espinacas a la crema', price: 13000 },
+  ]},
+  { cat: 'Postres', items: [
+    { name: 'Flan casero', price: 6000 },
+    { name: 'Budín de pan casero', price: 6000 },
+    { name: 'Panqueque de dulce de leche', price: 9000 },
+    { name: 'Panqueque de manzana', price: 10000 },
+    { name: 'Bocha de helado El Fundador', price: 6500 },
+    { name: 'Dos bochas de helado El Fundador', price: 12000 },
+    { name: 'Almendrado El Fundador', price: 11500 },
+    { name: 'Bombón Escocés El Fundador', price: 11500 },
+    { name: 'Queso y Dulce (batata o membrillo)', price: 7000 },
+    { name: 'Ensalada de frutas', price: 8000 },
+    { name: 'Brownie con bocha de crema americana y charlotte', price: 13000 },
+    { name: 'Tiramisú con queso mascarpone', price: 13000 },
+    { name: 'Mousse de limón con merengue casero y salsa de frutos rojos', price: 14000 },
+  ]},
+];
 const POSTRE_PRICE = 5500;
 const CAFE_PRICE = 3500;
 const DDL_PRICE = 3500;
@@ -557,6 +702,19 @@ window.clearApiKey = function() {
 function getApiKey() { return localStorage.getItem('buch_apikey') || ''; }
 
 /* ── Families ── */
+window.updateLibreItem = function(fid, idx, itemName, itemPrice, newQty) {
+  const f = families.find(x => x.id === fid);
+  if (!f || !f.orders[idx]) return;
+  const o = f.orders[idx];
+  if (!o.libreItems) o.libreItems = [];
+  const existing = o.libreItems.find(li => li.name === itemName);
+  if (existing) { existing.qty = newQty; }
+  else if (newQty > 0) { o.libreItems.push({ name: itemName, price: itemPrice, qty: newQty }); }
+  o.libreItems = o.libreItems.filter(li => li.qty > 0);
+  renderFamilies();
+  saveFamilyNode(f);
+};
+
 window.toggleFamilyReady = function(id) {
   const f = families.find(x => x.id === id);
   if (!f) return;
@@ -656,7 +814,7 @@ function buildFamilyHTML(f) {
 
 function buildOrderHTML(fid, o, idx, isOwner=true) {
   if (!isOwner) {
-    const label = o.menu==='otro' ? (o.otroItem && o.otroItem!=='otro_libre' ? o.otroItem : (o.description||'Otro')) : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+    const label = o.menu==='libre' ? ((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
     const bebida = o.bebida ? ` · 🥤 ${o.bebida}` : '';
     return `<div class="order-block" style="opacity:0.7;">
       <div style="font-size:13px;color:var(--text2);">${escHtml(label)}${bebida}</div>
@@ -670,7 +828,7 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
   const itemOpts = m.items.map(it => `<option value="${it}" ${o.item===it?'selected':''}>${it}</option>`).join('');
   const garnOpts = m.garnishes.map(g => `<option value="${g}" ${o.garnish===g?'selected':''}>${g}</option>`).join('');
   const sauceOpts = m.sauces.map(s => `<option value="${s}" ${o.sauce===s?'selected':''}>${s}</option>`).join('');
-  const isOtro = o.menu === 'otro';
+  const isOtro = o.menu === 'libre';
   const isKids = o.menu === 'infantil';
   return `
     <div class="order-block">
@@ -686,19 +844,41 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
       ${!isOtro && m.garnishes.length ? `<div class="form-group"><label class="form-label">Guarnición</label><select onchange="updateOrder(${fid},${idx},'garnish',this.value)"><option value="">— Elegir —</option>${garnOpts}</select></div>` : ''}
       ${!isOtro && m.sauces.length ? `<div class="form-group"><label class="form-label">Salsa (si aplica)</label><select onchange="updateOrder(${fid},${idx},'sauce',this.value)"><option value="">— N/A —</option>${sauceOpts}</select></div>` : ''}
       ${isOtro ? `
-        <div class="form-group">
-          <label class="form-label">Opción</label>
-          <select onchange="updateOrder(${fid},${idx},'otroItem',this.value)">
-            <option value="">— Elegir opción —</option>
-            <option value="Buñuelos de Espinaca" ${o.otroItem==='Buñuelos de Espinaca'?'selected':''}>Buñuelos de Espinaca — ${fmt(18000)}</option>
-            <option value="Muzzarelitas con salsa" ${o.otroItem==='Muzzarelitas con salsa'?'selected':''}>Muzzarelitas con salsa — ${fmt(15000)}</option>
-            <option value="otro_libre" ${o.otroItem==='otro_libre'?'selected':''}>Otro (precio libre)</option>
-          </select>
+        <div style="margin-top:4px;">
+          ${MENU_LIBRE_CATEGORIAS.map(cat => `
+            <details style="margin-bottom:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+              <summary style="padding:8px 10px;cursor:pointer;font-size:13px;font-weight:500;background:var(--surface2);list-style:none;display:flex;justify-content:space-between;align-items:center;">
+                ${cat.cat}
+                <span style="font-size:11px;color:var(--text3);">${cat.items.length} ítems</span>
+              </summary>
+              <div style="padding:6px 10px;">
+                ${cat.items.map(item => {
+                  const libreItems = o.libreItems || [];
+                  const existing = libreItems.find(li => li.name === item.name);
+                  const qty = existing ? existing.qty : 0;
+                  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+                    <span style="flex:1;">${item.name}</span>
+                    <span style="color:var(--text3);margin:0 10px;white-space:nowrap;">${fmt(item.price)}</span>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <button class="qty-btn" onclick="updateLibreItem(${fid},${idx},'${item.name.replace(/'/g,"\\'")}',${item.price},Math.max(0,${qty}-1))">−</button>
+                      <span style="min-width:16px;text-align:center;font-weight:500;">${qty}</span>
+                      <button class="qty-btn" onclick="updateLibreItem(${fid},${idx},'${item.name.replace(/'/g,"\\'")}',${item.price},${qty}+1)">+</button>
+                    </div>
+                  </div>`;
+                }).join('')}
+              </div>
+            </details>
+          `).join('')}
+          ${(o.libreItems||[]).length > 0 ? `
+            <div style="background:var(--accent-light);border:1px solid var(--accent-border);border-radius:8px;padding:8px 10px;margin-top:4px;">
+              <div style="font-size:11px;font-weight:500;color:var(--accent);margin-bottom:4px;">Seleccionado:</div>
+              ${(o.libreItems||[]).filter(li=>li.qty>0).map(li=>`
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0;">
+                  <span>${li.qty}x ${li.name}</span><span>${fmt(li.price*li.qty)}</span>
+                </div>`).join('')}
+            </div>
+          ` : '<p style="font-size:12px;color:var(--text3);margin-top:4px;">Abrí una categoría para elegir ítems.</p>'}
         </div>
-        ${o.otroItem === 'otro_libre' ? `
-          <div class="form-group"><label class="form-label">Descripción</label><textarea placeholder="Describí qué pediste..." onchange="updateOrder(${fid},${idx},'description',this.value)">${escHtml(o.description||'')}</textarea></div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">El precio se cargará desde el ticket en el paso 3.</div>
-        ` : ''}
       ` : `
           <div class="sep"></div>
           <div class="qty-row">
@@ -989,7 +1169,7 @@ function renderValidation() {
           ${f.orders.length === 0
             ? `<p style="font-size:12px;color:var(--text3);">Sin platos.</p>`
             : f.orders.map((o,i) => {
-                const label = o.menu==='otro' ? (o.otroItem && o.otroItem!=='otro_libre' ? o.otroItem : (o.description||'Otro')) : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+                const label = o.menu==='libre' ? ((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
                 const bebida = o.bebida ? ` <span style="color:var(--text3);font-size:11px;">(${o.bebida})</span>` : '';
                 const extras = [];
                 if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
@@ -1134,7 +1314,7 @@ function renderResults() {
     const finalAmount = tt > 0 && declaredTotal > 0 ? tt * pct : base;
 
     const orderLines = f.orders.map(o => {
-      const label = o.menu==='otro'?(o.description||'Otro'):(MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+      const label = o.menu==='libre'?((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre'):(MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
       const bev = o.bebida?` <span style="color:var(--text3);font-size:11px;">(${o.bebida})</span>`:'';
       return `<div class="result-line"><span>${escHtml(label)}${bev}</span><span>${fmt(orderTotal(o))}</span></div>`;
     }).join('');
@@ -1167,10 +1347,8 @@ function renderResults() {
 
 /* ── Helpers ── */
 function orderTotal(o) {
-  if (o.menu==='otro') {
-    if (o.otroItem === 'Buñuelos de Espinaca') return 18000;
-    if (o.otroItem === 'Muzzarelitas con salsa') return 15000;
-    return o.price||0;
+  if (o.menu==='libre') {
+    return (o.libreItems||[]).reduce((s,li) => s + li.price*li.qty, 0);
   }
   return (MENUS[o.menu]?.price||0) + (o.postre||0)*POSTRE_PRICE + (o.cafe||0)*CAFE_PRICE + (o.ddl||0)*DDL_PRICE + (o.mixto||0)*MIXTO_PRICE;
 }
