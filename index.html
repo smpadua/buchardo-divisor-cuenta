@@ -210,9 +210,10 @@
     <nav class="steps-nav">
       <div class="step-tab active" id="tab1" onclick="goStep(1)"><span class="step-num">1</span>Pedidos</div>
       <div class="step-tab" id="tab2" onclick="goStep(2)"><span class="step-num">2</span>Comanda</div>
-      <div class="step-tab" id="tab3" onclick="goStep(3)"><span class="step-num">3</span>Ticket</div>
-      <div class="step-tab" id="tab4" onclick="goStep(4)"><span class="step-num">4</span>Validar</div>
-      <div class="step-tab" id="tab5" onclick="goStep(5)"><span class="step-num">5</span>División</div>
+      <div class="step-tab" id="tab3" onclick="goStep(3)"><span class="step-num">3</span>Resumen</div>
+      <div class="step-tab" id="tab4" onclick="goStep(4)"><span class="step-num">4</span>Ticket</div>
+      <div class="step-tab" id="tab5" onclick="goStep(5)"><span class="step-num">5</span>Validar</div>
+      <div class="step-tab" id="tab6" onclick="goStep(6)"><span class="step-num">6</span>División</div>
     </nav>
 
     <!-- STEP 1 -->
@@ -229,12 +230,21 @@
       <div id="comanda-container"></div>
       <div class="actions-between">
         <button class="btn" onclick="goStep(1)">← Editar pedidos</button>
-        <button class="btn btn-primary" onclick="goStep(3)">Cargar ticket →</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Ver resumen →</button>
       </div>
     </div>
 
-    <!-- STEP 3 -->
+    <!-- STEP 3: Resumen por categoría -->
     <div class="panel" id="step3">
+      <div id="resumen-container"></div>
+      <div class="actions-between">
+        <button class="btn" onclick="goStep(2)">← Comanda</button>
+        <button class="btn btn-primary" onclick="goStep(4)">Cargar ticket →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="panel" id="step4">
       <div class="api-banner" style="margin-bottom:1rem;">
         <details style="width:100%;">
           <summary>🔑 API key de Anthropic (solo necesaria para leer el ticket con IA)</summary>
@@ -279,25 +289,25 @@
         <div id="diff-info" class="text-muted" style="font-size:12px;"></div>
       </div>
       <div class="actions-between">
-        <button class="btn" onclick="goStep(2)">← Volver</button>
-        <button class="btn btn-primary" onclick="goStep(4)">Validar pedidos →</button>
-      </div>
-    </div>
-
-    <!-- STEP 4 -->
-    <div class="panel" id="step4">
-      <div id="validation-container"></div>
-      <div class="actions-between">
         <button class="btn" onclick="goStep(3)">← Volver</button>
-        <button class="btn btn-primary" onclick="goStep(5)">Calcular división →</button>
+        <button class="btn btn-primary" onclick="goStep(5)">Validar pedidos →</button>
       </div>
     </div>
 
     <!-- STEP 5 -->
     <div class="panel" id="step5">
-      <div id="results-container"></div>
+      <div id="validation-container"></div>
       <div class="actions-between">
         <button class="btn" onclick="goStep(4)">← Volver</button>
+        <button class="btn btn-primary" onclick="goStep(6)">Calcular división →</button>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="panel" id="step6">
+      <div id="results-container"></div>
+      <div class="actions-between">
+        <button class="btn" onclick="goStep(5)">← Volver</button>
         <button class="btn btn-danger" onclick="resetAll()">Reiniciar mesa</button>
       </div>
     </div>
@@ -330,7 +340,8 @@ const MENUS = {
   ejecutivo2: { label: 'Menú Ejecutivo 2', price: 18000, items: ['Merluza a la romana con puré','Ensalada César grande','Pasta seca','Pizza individual de muzzarella con fainá','¼ de pollo con guarnición'], garnishes: [], sauces: ['Crema','Filetto','Rosa'] },
   socios:     { label: 'Menú Socios', price: 17000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Milanesa con guarnición','Suprema de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
   infantil:   { label: 'Menú Infantil (hasta 10 años)', price: 13000, items: ['Ñoquis','Spaghetti','Fusilli fierrito','Penne rigatti con salsa','Milanesa con guarnición','Suprema de pollo con guarnición','Nuggets de pollo con guarnición','Pollo grille con guarnición','Pollo oriental','Calabaza rellena con guarnición','Omelette de jamón y queso con guarnición','Ensalada grande completa'], garnishes: [], sauces: ['Filetto','Crema','Rosa','Salteado de verdura'] },
-  libre: { label: 'Menú Libre', price: 0, items: [], garnishes: [], sauces: [] }
+  libre: { label: 'Menú Libre', price: 0, items: [], garnishes: [], sauces: [] },
+  otrolibre: { label: 'Otro (precio libre)', price: 0, items: [], garnishes: [], sauces: [] }
 };
 
 const MENU_LIBRE_CATEGORIAS = [
@@ -494,6 +505,7 @@ let tickCounter = 0;
 let isSyncing = false;
 let saveTimeout = null;
 let unsubscribe = null;
+let pendingFamilySaves = new Set(); // track families being saved by this device
 
 /* ── Session ── */
 function generateCode() {
@@ -568,10 +580,21 @@ function subscribeToSession() {
     const data = snap.val();
 
     const rawFamilies = data.families ? Object.values(data.families) : [];
-    families = rawFamilies.map(f => ({
+    const incomingFamilies = rawFamilies.map(f => ({
       ...f,
       orders: Array.isArray(f.orders) ? f.orders : (f.orders ? Object.values(f.orders) : [])
     }));
+
+    // Merge: keep local version for families currently being saved by this device
+    families = incomingFamilies.map(incoming => {
+      if (pendingFamilySaves.has(incoming.id)) {
+        // Keep local version while save is in flight
+        return families.find(f => f.id === incoming.id) || incoming;
+      }
+      return incoming;
+    });
+    // Add any local families not yet in Firebase
+    families.push(...families.filter(f => pendingFamilySaves.has(f.id) && !incomingFamilies.find(i => i.id === f.id)));
 
     const rawTicket = data.ticketItems ? Object.values(data.ticketItems) : [];
     ticketItems = rawTicket.map(it => ({ ...it }));
@@ -627,6 +650,7 @@ async function saveToFirebase() {
 
 async function saveFamilyNode(family) {
   if (!sessionCode) return;
+  pendingFamilySaves.add(family.id);
   try {
     setSyncDot('syncing');
     await set(ref(db, `sessions/${sessionCode}/families/${family.id}`), family);
@@ -634,6 +658,8 @@ async function saveFamilyNode(family) {
   } catch(e) {
     setSyncDot('');
     showSyncBanner('Error al guardar. Verificá tu conexión.', true);
+  } finally {
+    pendingFamilySaves.delete(family.id);
   }
 }
 
@@ -653,7 +679,7 @@ async function removeFamilyNode(familyId) {
 let currentStep = 1;
 window.goStep = function(n) {
   currentStep = n;
-  [1,2,3,4,5].forEach(i => {
+  [1,2,3,4,5,6].forEach(i => {
     document.getElementById('step'+i).classList.toggle('active', i===n);
     const tab = document.getElementById('tab'+i);
     tab.classList.remove('active','done');
@@ -667,9 +693,10 @@ window.goStep = function(n) {
 function renderCurrentStep() {
   if (currentStep === 1) renderFamilies();
   if (currentStep === 2) renderComanda();
-  if (currentStep === 3) { renderTicketTable(); updateDiffInfo(); initApiKey(); }
-  if (currentStep === 4) renderValidation();
-  if (currentStep === 5) renderResults();
+  if (currentStep === 3) renderResumen();
+  if (currentStep === 4) { renderTicketTable(); updateDiffInfo(); initApiKey(); }
+  if (currentStep === 5) renderValidation();
+  if (currentStep === 6) renderResults();
 }
 
 window.copyShareLink = function(url) {
@@ -713,6 +740,19 @@ window.updateLibreItem = function(fid, idx, itemName, itemPrice, newQty) {
   o.libreItems = o.libreItems.filter(li => li.qty > 0);
   renderFamilies();
   saveFamilyNode(f);
+};
+
+let isAdmin = false;
+
+window.toggleAdmin = function(familyId) {
+  // Store admin flag in localStorage per session+device
+  const key = `buch_admin_${sessionCode}_${deviceId}`;
+  isAdmin = !isAdmin;
+  localStorage.setItem(key, isAdmin ? '1' : '');
+  // Save admin flag to family node
+  const f = families.find(x => x.id === familyId);
+  if (f) { f.isAdmin = isAdmin; saveFamilyNode(f); }
+  renderFamilies();
 };
 
 window.toggleFamilyReady = function(id) {
@@ -780,32 +820,39 @@ function renderFamilies() {
 function buildFamilyHTML(f) {
   const total = familyTotal(f);
   const isOwner = !f.ownerId || f.ownerId === deviceId;
+  const canEdit = isOwner || isAdmin;
   const isReady = !!f.ready;
-  const ordersHTML = f.orders.map((o,i) => buildOrderHTML(f.id, o, i, isOwner && !isReady)).join('');
+  const ordersHTML = f.orders.map((o,i) => buildOrderHTML(f.id, o, i, canEdit && !isReady)).join('');
   return `
     <div class="family-card" style="${isReady ? 'border-color:#a8d5be;' : ''}">
     <div class="family-header" style="${isReady ? 'background:var(--success-bg);' : ''}">
-      <div style="display:flex;align-items:center;gap:8px;">
-        ${isOwner && !isReady
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        ${canEdit && !isReady
           ? `<input class="family-name-input" value="${escHtml(f.name)}" onchange="updateFamilyName(${f.id},this.value)" placeholder="Nombre de familia">`
           : `<span style="font-family:'Playfair Display',serif;font-size:17px;color:var(--text);">${escHtml(f.name)}</span>`
         }
-        ${!isOwner ? `<span style="font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:2px 8px;">🔒 otro dispositivo</span>` : ''}
+        ${!isOwner && !isAdmin ? `<span style="font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:2px 8px;">🔒 otro dispositivo</span>` : ''}
+        ${isAdmin && !isOwner ? `<span style="font-size:11px;color:#0d1f3c;background:#e8edf5;border:1px solid var(--border2);border-radius:99px;padding:2px 8px;">🛡 admin</span>` : ''}
         ${isReady ? `<span style="font-size:11px;color:var(--success);background:var(--success-bg);border:1px solid #a8d5be;border-radius:99px;padding:2px 8px;">✓ Pedido listo</span>` : ''}
       </div>
-      <div style="display:flex;gap:6px;align-items:center;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <span style="font-size:12px;color:var(--text3);">${f.orders.length} plato${f.orders.length!==1?'s':''}</span>
         ${isOwner ? `
+          <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;color:${isAdmin?'var(--accent)':'var(--text3)'};" onclick="toggleAdmin(${f.id})">
+            ${isAdmin ? '🛡 Admin ON' : 'Ser admin'}
+          </button>
+        ` : ''}
+        ${canEdit ? `
           <button class="btn btn-sm ${isReady ? '' : 'btn-accent'}" onclick="toggleFamilyReady(${f.id})">
-            ${isReady ? '✏️ Editar pedido' : '✓ Listo pedido'}
+            ${isReady ? '✏️ Editar' : '✓ Listo'}
           </button>
           ${!isReady ? `<button class="btn btn-sm btn-danger" onclick="removeFamily(${f.id})">Eliminar</button>` : ''}
         ` : ''}
       </div>
     </div>
     <div class="family-body">
-      ${isReady && isOwner ? `<p style="font-size:13px;color:var(--success);padding:8px 0;">Pedido confirmado. Tocá "Editar pedido" para hacer cambios.</p>` : ordersHTML}
-      ${isOwner && !isReady ? `<button class="btn-dashed" style="margin-top:4px;" onclick="addOrder(${f.id})">+ Agregar plato</button>` : ''}
+      ${isReady && !canEdit ? `<p style="font-size:13px;color:var(--success);padding:8px 0;">Pedido confirmado.</p>` : ordersHTML}
+      ${canEdit && !isReady ? `<button class="btn-dashed" style="margin-top:4px;" onclick="addOrder(${f.id})">+ Agregar plato</button>` : ''}
       ${f.orders.length>0 ? `<div class="family-total-line">Total declarado: <strong>${fmt(total)}</strong></div>` : ''}
     </div>
     </div>
@@ -814,7 +861,7 @@ function buildFamilyHTML(f) {
 
 function buildOrderHTML(fid, o, idx, isOwner=true) {
   if (!isOwner) {
-    const label = o.menu==='libre' ? ((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+    const label = o.menu==='libre' ? ((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre') : o.menu==='otrolibre' ? (o.description||'Otro') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
     const bebida = o.bebida ? ` · 🥤 ${o.bebida}` : '';
     return `<div class="order-block" style="opacity:0.7;">
       <div style="font-size:13px;color:var(--text2);">${escHtml(label)}${bebida}</div>
@@ -828,7 +875,9 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
   const itemOpts = m.items.map(it => `<option value="${it}" ${o.item===it?'selected':''}>${it}</option>`).join('');
   const garnOpts = m.garnishes.map(g => `<option value="${g}" ${o.garnish===g?'selected':''}>${g}</option>`).join('');
   const sauceOpts = m.sauces.map(s => `<option value="${s}" ${o.sauce===s?'selected':''}>${s}</option>`).join('');
-  const isOtro = o.menu === 'libre';
+  const isLibre = o.menu === 'libre';
+  const isOtroLibre = o.menu === 'otrolibre';
+  const isOtro = isLibre || isOtroLibre;
   const isKids = o.menu === 'infantil';
   return `
     <div class="order-block">
@@ -843,7 +892,7 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
       ${!isOtro && m.items.length ? `<div class="form-group"><label class="form-label">Plato principal</label><select onchange="updateOrder(${fid},${idx},'item',this.value)"><option value="">— Elegir plato —</option>${itemOpts}</select></div>` : ''}
       ${!isOtro && m.garnishes.length ? `<div class="form-group"><label class="form-label">Guarnición</label><select onchange="updateOrder(${fid},${idx},'garnish',this.value)"><option value="">— Elegir —</option>${garnOpts}</select></div>` : ''}
       ${!isOtro && m.sauces.length ? `<div class="form-group"><label class="form-label">Salsa (si aplica)</label><select onchange="updateOrder(${fid},${idx},'sauce',this.value)"><option value="">— N/A —</option>${sauceOpts}</select></div>` : ''}
-      ${isOtro ? `
+      ${isLibre ? `
         <div style="margin-top:4px;">
           ${MENU_LIBRE_CATEGORIAS.map(cat => `
             <details style="margin-bottom:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -869,7 +918,7 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
               </div>
             </details>
           `).join('')}
-          ${(o.libreItems||[]).length > 0 ? `
+          ${(o.libreItems||[]).filter(li=>li.qty>0).length > 0 ? `
             <div style="background:var(--accent-light);border:1px solid var(--accent-border);border-radius:8px;padding:8px 10px;margin-top:4px;">
               <div style="font-size:11px;font-weight:500;color:var(--accent);margin-bottom:4px;">Seleccionado:</div>
               ${(o.libreItems||[]).filter(li=>li.qty>0).map(li=>`
@@ -878,6 +927,15 @@ function buildOrderHTML(fid, o, idx, isOwner=true) {
                 </div>`).join('')}
             </div>
           ` : '<p style="font-size:12px;color:var(--text3);margin-top:4px;">Abrí una categoría para elegir ítems.</p>'}
+        </div>
+      ` : isOtroLibre ? `
+        <div class="form-group">
+          <label class="form-label">Descripción del pedido</label>
+          <textarea placeholder="Describí qué pediste..." onchange="updateOrder(${fid},${idx},'description',this.value)">${escHtml(o.description||'')}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio ($)</label>
+          <input type="number" placeholder="0" value="${o.price||''}" onchange="updateOrder(${fid},${idx},'price',parseFloat(this.value)||0)">
         </div>
       ` : `
           <div class="sep"></div>
@@ -953,10 +1011,22 @@ function renderComanda() {
     if (f.orders.length === 0) return;
     let rows = '';
     f.orders.forEach(o => {
-      const menuLabel = MENUS[o.menu]?.label || 'Otro';
-      const plato = o.menu === 'otro' ? (o.description || '—') : (o.item || '—');
-      const garnish = o.garnish ? `<span style="color:var(--text3)"> · ${o.garnish}</span>` : '';
-      const sauce = o.sauce ? `<span style="color:var(--text3)"> · ${o.sauce}</span>` : '';
+      const isLibre = o.menu === 'libre';
+      const isOtroLibre = o.menu === 'otrolibre';
+      const menuLabel = MENUS[o.menu]?.label || (isOtroLibre ? 'Otro' : 'Menú Libre');
+      let platoHTML = '';
+      if (isLibre) {
+        const libreItems = (o.libreItems||[]).filter(li=>li.qty>0);
+        platoHTML = libreItems.length
+          ? libreItems.map(li=>`<div style="font-size:13px;">${li.qty>1?li.qty+'× ':''}${li.name} <span style="color:var(--text3);font-size:12px;">${fmt(li.price*li.qty)}</span></div>`).join('')
+          : '<span style="color:var(--text3);">Sin ítems seleccionados</span>';
+      } else if (isOtroLibre) {
+        platoHTML = `<span style="font-size:14px;font-weight:500;">${escHtml(o.description||'—')}</span>`;
+      } else {
+        const garnish = o.garnish ? ` · ${o.garnish}` : '';
+        const sauce = o.sauce ? ` · ${o.sauce}` : '';
+        platoHTML = `<span style="font-size:14px;font-weight:500;">${escHtml(o.item||'—')}${garnish}${sauce}</span>`;
+      }
       const bebida = o.bebida ? `<div style="font-size:12px;color:var(--text3);margin-top:1px;">🥤 ${o.bebida}</div>` : '';
       const extras = [];
       if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
@@ -969,7 +1039,7 @@ function renderComanda() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);">
           <div style="flex:1;">
             <div style="font-size:12px;color:var(--text3);margin-bottom:2px;">${escHtml(menuLabel)}</div>
-            <div style="font-size:14px;font-weight:500;">${escHtml(plato)}${garnish}${sauce}</div>
+            ${platoHTML}
             ${bebida}${extrasLine}${comments}
           </div>
           <div style="font-size:13px;color:var(--text2);margin-left:12px;white-space:nowrap;">${fmt(orderTotal(o))}</div>
@@ -991,6 +1061,64 @@ function renderComanda() {
       </div>
     `;
   });
+}
+
+/* ── Resumen por categoría ── */
+function renderResumen() {
+  const container = document.getElementById('resumen-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Count by menu type
+  const menuCount = {};
+  const libreCount = {};
+  families.forEach(f => {
+    f.orders.forEach(o => {
+      if (o.menu === 'libre') {
+        (o.libreItems||[]).filter(li=>li.qty>0).forEach(li => {
+          libreCount[li.name] = (libreCount[li.name]||0) + li.qty;
+        });
+      } else if (o.menu === 'otrolibre') {
+        const key = o.description || 'Otro';
+        libreCount[key] = (libreCount[key]||0) + 1;
+      } else {
+        const key = MENUS[o.menu]?.label || o.menu;
+        menuCount[key] = (menuCount[key]||0) + 1;
+      }
+    });
+  });
+
+  const grandTotal = families.reduce((s,f) => s + familyTotal(f), 0);
+  container.innerHTML += `
+    <div class="total-summary-card" style="margin-bottom:1.25rem;">
+      <div><div class="label">Total estimado</div><div class="value">${fmt(grandTotal)}</div></div>
+      <div style="text-align:right;"><div class="label">Familias</div><div class="value" style="font-size:20px;">${families.length}</div></div>
+    </div>
+  `;
+
+  if (Object.keys(menuCount).length > 0) {
+    let html = `<div class="card"><div class="card-title">Menús ejecutivos / socios</div>`;
+    Object.entries(menuCount).sort((a,b)=>b[1]-a[1]).forEach(([name,qty]) => {
+      html += `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px;">
+        <span>${name}</span><strong>${qty}</strong></div>`;
+    });
+    html += `</div>`;
+    container.innerHTML += html;
+  }
+
+  if (Object.keys(libreCount).length > 0) {
+    let html = `<div class="card"><div class="card-title">Menú Libre / Otros</div>`;
+    Object.entries(libreCount).sort((a,b)=>b[1]-a[1]).forEach(([name,qty]) => {
+      html += `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px;">
+        <span>${escHtml(name)}</span><strong>${qty}</strong></div>`;
+    });
+    html += `</div>`;
+    container.innerHTML += html;
+  }
+
+  if (Object.keys(menuCount).length === 0 && Object.keys(libreCount).length === 0) {
+    container.innerHTML += `<div class="card"><p class="text-muted">No hay pedidos cargados.</p></div>`;
+  }
 }
 
 /* ── Ticket ── */
@@ -1169,7 +1297,7 @@ function renderValidation() {
           ${f.orders.length === 0
             ? `<p style="font-size:12px;color:var(--text3);">Sin platos.</p>`
             : f.orders.map((o,i) => {
-                const label = o.menu==='libre' ? ((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+                const label = o.menu==='libre' ? ((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre') : o.menu==='otrolibre' ? (o.description||'Otro') : (MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
                 const bebida = o.bebida ? ` <span style="color:var(--text3);font-size:11px;">(${o.bebida})</span>` : '';
                 const extras = [];
                 if (o.postre) extras.push(`${o.postre} postre${o.postre>1?'s':''}`);
@@ -1314,7 +1442,7 @@ function renderResults() {
     const finalAmount = tt > 0 && declaredTotal > 0 ? tt * pct : base;
 
     const orderLines = f.orders.map(o => {
-      const label = o.menu==='libre'?((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre'):(MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
+      const label = o.menu==='libre'?((o.libreItems||[]).filter(li=>li.qty>0).map(li=>li.qty>1?li.qty+'x '+li.name:li.name).join(', ')||'Menú Libre'):o.menu==='otrolibre'?(o.description||'Otro'):(MENUS[o.menu]?.label+(o.item?' — '+o.item:''));
       const bev = o.bebida?` <span style="color:var(--text3);font-size:11px;">(${o.bebida})</span>`:'';
       return `<div class="result-line"><span>${escHtml(label)}${bev}</span><span>${fmt(orderTotal(o))}</span></div>`;
     }).join('');
@@ -1350,6 +1478,7 @@ function orderTotal(o) {
   if (o.menu==='libre') {
     return (o.libreItems||[]).reduce((s,li) => s + li.price*li.qty, 0);
   }
+  if (o.menu==='otrolibre') return o.price||0;
   return (MENUS[o.menu]?.price||0) + (o.postre||0)*POSTRE_PRICE + (o.cafe||0)*CAFE_PRICE + (o.ddl||0)*DDL_PRICE + (o.mixto||0)*MIXTO_PRICE;
 }
 function familyTotal(f) { return f.orders.reduce((s,o)=>s+orderTotal(o),0); }
