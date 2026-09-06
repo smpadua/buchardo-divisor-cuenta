@@ -212,8 +212,10 @@
       <div class="step-tab" id="tab2" onclick="goStep(2)"><span class="step-num">2</span>Comanda</div>
       <div class="step-tab" id="tab3" onclick="goStep(3)"><span class="step-num">3</span>Resumen</div>
       <div class="step-tab" id="tab4" onclick="goStep(4)"><span class="step-num">4</span>Ticket</div>
-      <div class="step-tab" id="tab5" onclick="goStep(5)"><span class="step-num">5</span>Validar</div>
-      <div class="step-tab" id="tab6" onclick="goStep(6)"><span class="step-num">6</span>División</div>
+      <div class="step-tab active" id="tab1" onclick="goStep(1)"><span class="step-num">1</span>Pedidos</div>
+      <div class="step-tab" id="tab2" onclick="goStep(2)"><span class="step-num">2</span>Comanda</div>
+      <div class="step-tab" id="tab3" onclick="goStep(3)"><span class="step-num">3</span>Resumen</div>
+      <div class="step-tab" id="tab4" onclick="goStep(4)"><span class="step-num">4</span>Pagos</div>
     </nav>
 
     <!-- STEP 1 -->
@@ -234,80 +236,20 @@
       </div>
     </div>
 
-    <!-- STEP 3: Resumen por categoría -->
+    <!-- STEP 3 -->
     <div class="panel" id="step3">
       <div id="resumen-container"></div>
       <div class="actions-between">
         <button class="btn" onclick="goStep(2)">← Comanda</button>
-        <button class="btn btn-primary" onclick="goStep(4)">Cargar ticket →</button>
+        <button class="btn btn-primary" onclick="goStep(4)">División de pagos →</button>
       </div>
     </div>
 
-    <!-- STEP 4 -->
+    <!-- STEP 4: Pagos -->
     <div class="panel" id="step4">
-      <div class="api-banner" style="margin-bottom:1rem;">
-        <details style="width:100%;">
-          <summary>🔑 API key de Anthropic (solo necesaria para leer el ticket con IA)</summary>
-          <p style="margin-top:6px;font-size:12px;">Se usa únicamente para leer la foto del ticket. Las familias que solo cargan pedidos no necesitan configurarla. Obtené tu key en <a href="https://console.anthropic.com" target="_blank" style="color:var(--warning);">console.anthropic.com</a>. Se guarda solo en este navegador.</p>
-          <div class="api-key-input-row">
-            <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." />
-            <button class="btn btn-sm" onclick="saveApiKey()">Guardar</button>
-            <button class="btn btn-sm btn-danger" onclick="clearApiKey()">Borrar</button>
-          </div>
-          <p id="api-key-status" style="font-size:11px;margin-top:6px;"></p>
-        </details>
-      </div>
-      <div class="card">
-        <div class="card-title">Foto del ticket</div>
-        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
-          <div class="upload-icon">📷</div>
-          <div class="upload-title">Tocá para sacar foto o subir imagen</div>
-          <div class="upload-sub">JPG, PNG o HEIC — el ticket se lee automáticamente con IA</div>
-          <img id="ticket-preview" alt="Vista previa del ticket" />
-        </div>
-        <input type="file" id="file-input" accept="image/*" capture="environment" onchange="handleFileUpload(this)">
-        <div class="processing-overlay" id="processing">
-          <div class="spinner"></div>
-          <span>Leyendo el ticket con Claude Vision…</span>
-        </div>
-      </div>
-      <div class="card" id="ticket-items-card" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-          <div class="card-title" style="margin:0;">Ítems del ticket</div>
-          <button class="btn btn-sm" onclick="addTicketItemRow()">+ Agregar ítem</button>
-        </div>
-        <table class="ticket-table">
-          <thead><tr><th>Descripción</th><th>Cant.</th><th>Precio unit.</th><th></th></tr></thead>
-          <tbody id="ticket-tbody"></tbody>
-        </table>
-      </div>
-      <div class="card">
-        <div class="form-group">
-          <label class="form-label">Total del ticket ($)</label>
-          <input type="number" id="ticket-total" placeholder="ej: 125000" oninput="onTicketTotalChange()">
-        </div>
-        <div id="diff-info" class="text-muted" style="font-size:12px;"></div>
-      </div>
+      <div id="pagos-container"></div>
       <div class="actions-between">
         <button class="btn" onclick="goStep(3)">← Volver</button>
-        <button class="btn btn-primary" onclick="goStep(5)">Validar pedidos →</button>
-      </div>
-    </div>
-
-    <!-- STEP 5 -->
-    <div class="panel" id="step5">
-      <div id="validation-container"></div>
-      <div class="actions-between">
-        <button class="btn" onclick="goStep(4)">← Volver</button>
-        <button class="btn btn-primary" onclick="goStep(6)">Calcular división →</button>
-      </div>
-    </div>
-
-    <!-- STEP 6 -->
-    <div class="panel" id="step6">
-      <div id="results-container"></div>
-      <div class="actions-between">
-        <button class="btn" onclick="goStep(5)">← Volver</button>
         <button class="btn btn-danger" onclick="resetAll()">Reiniciar mesa</button>
       </div>
     </div>
@@ -755,7 +697,7 @@ async function removeFamilyNode(familyId) {
 let currentStep = 1;
 window.goStep = function(n) {
   currentStep = n;
-  [1,2,3,4,5,6].forEach(i => {
+  [1,2,3,4].forEach(i => {
     document.getElementById('step'+i).classList.toggle('active', i===n);
     const tab = document.getElementById('tab'+i);
     tab.classList.remove('active','done');
@@ -770,9 +712,7 @@ function renderCurrentStep() {
   if (currentStep === 1) renderFamilies();
   if (currentStep === 2) renderComanda();
   if (currentStep === 3) renderResumen();
-  if (currentStep === 4) { renderTicketTable(); updateDiffInfo(); initApiKey(); }
-  if (currentStep === 5) renderValidation();
-  if (currentStep === 6) renderResults();
+  if (currentStep === 4) renderPagos();
 }
 
 window.copyShareLink = function(url) {
@@ -841,10 +781,15 @@ window.toggleFamilyReady = function(id) {
 
 window.addFamily = function() {
   const newId = Date.now();
-  const newFamily = { id: newId, name: 'Familia', orders: [], ownerId: deviceId };
-  families.push(newFamily);
+  const newFamily = { id: newId, name: 'Familia', orders: [], comensales: 1, ownerId: deviceId };
+  families.unshift(newFamily); // prepend
   renderFamilies();
   saveFamilyNode(newFamily);
+};
+
+window.updateComensales = function(id, val) {
+  const f = families.find(x => x.id === id);
+  if (f) { f.comensales = parseInt(val)||1; saveFamilyNode(f); }
 };
 
 window.removeFamily = function(id) {
@@ -861,7 +806,7 @@ window.updateFamilyName = function(id, val) {
 window.addOrder = function(fid) {
   const f = families.find(x => x.id === fid);
   if (f) {
-    f.orders.push({ menu:'ejecutivo1', item:'', garnish:'', sauce:'', bebida:'', postre:0, cafe:0, ddl:0, mixto:0, comments:'', description:'', price:0 });
+    f.orders.unshift({ menu:'ejecutivo1', item:'', garnish:'', sauce:'', bebida:'', postre:0, cafe:0, ddl:0, mixto:0, comments:'', description:'', price:0 });
     renderFamilies();
     saveFamilyNode(f);
   }
@@ -927,6 +872,17 @@ function buildFamilyHTML(f) {
       </div>
     </div>
     <div class="family-body">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:4px;border-bottom:1px solid var(--border);">
+        <label style="font-size:13px;color:var(--text2);flex:1;">👥 Comensales</label>
+        ${canEdit
+          ? `<div class="qty-ctrl">
+              <button class="qty-btn" onclick="updateComensales(${f.id},Math.max(1,${f.comensales||1}-1))">−</button>
+              <span class="qty-num">${f.comensales||1}</span>
+              <button class="qty-btn" onclick="updateComensales(${f.id},${(f.comensales||1)+1})">+</button>
+            </div>`
+          : `<span style="font-size:15px;font-weight:500;">${f.comensales||1}</span>`
+        }
+      </div>
       ${isReady && !canEdit ? `<p style="font-size:13px;color:var(--success);padding:8px 0;">Pedido confirmado.</p>` : ordersHTML}
       ${canEdit && !isReady ? `<button class="btn-dashed" style="margin-top:4px;" onclick="addOrder(${f.id})">+ Agregar plato</button>` : ''}
       ${f.orders.length>0 ? `<div class="family-total-line">Total declarado: <strong>${fmt(total)}</strong></div>` : ''}
@@ -1170,10 +1126,14 @@ function renderResumen() {
   });
 
   const grandTotal = families.reduce((s,f) => s + familyTotal(f), 0);
+  const totalComensales = families.reduce((s,f) => s + (f.comensales||1), 0);
   container.innerHTML += `
     <div class="total-summary-card" style="margin-bottom:1.25rem;">
       <div><div class="label">Total estimado</div><div class="value">${fmt(grandTotal)}</div></div>
-      <div style="text-align:right;"><div class="label">Familias</div><div class="value" style="font-size:20px;">${families.length}</div></div>
+      <div style="text-align:right;">
+        <div style="font-size:12px;opacity:0.6;">Familias: ${families.length} · Sillas: ${totalComensales}</div>
+        <div class="value" style="font-size:20px;">👥 ${totalComensales}</div>
+      </div>
     </div>
   `;
 
@@ -1574,6 +1534,205 @@ function renderResults() {
         </div>
       </div>`;
   });
+}
+
+/* ── Pagos ── */
+function renderPagos() {
+  const container = document.getElementById('pagos-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (families.length === 0) {
+    container.innerHTML = `<div class="card"><p class="text-muted">No hay familias cargadas.</p></div>`;
+    return;
+  }
+
+  const grandTotal = families.reduce((s,f) => s + familyTotal(f), 0);
+  const totalComensales = families.reduce((s,f) => s + (f.comensales||1), 0);
+
+  // Summary card
+  container.innerHTML += `
+    <div class="total-summary-card" style="margin-bottom:1.25rem;">
+      <div><div class="label">Total de la mesa</div><div class="value">${fmt(grandTotal)}</div></div>
+      <div style="text-align:right;"><div class="label">Familias</div><div class="value" style="font-size:20px;">${families.length}</div></div>
+    </div>
+  `;
+
+  // Per-family totals card
+  let famTotalsHTML = `<div class="card"><div class="card-title">Total por familia</div>`;
+  families.forEach(f => {
+    const total = familyTotal(f);
+    famTotalsHTML += `
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <span style="font-size:14px;">${escHtml(f.name)}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:6px;">${f.comensales||1} comensal${(f.comensales||1)!==1?'es':''}</span>
+        </div>
+        <strong style="font-size:15px;">${fmt(total)}</strong>
+      </div>`;
+  });
+  famTotalsHTML += `</div>`;
+  container.innerHTML += famTotalsHTML;
+
+  // Sugerido automático: emparejar las dos familias que pagan con totales más similares
+  // Algoritmo: asignar a cada familia pagadora un grupo de familias que la paguen
+  // para que los totales queden lo más equilibrados posible
+  if (families.length >= 2) {
+    container.innerHTML += `
+      <div class="card">
+        <div class="card-title">¿Quién paga?</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Seleccioná las familias que van a pagar. Luego podés asignar a cada pagador qué familias cubre.</p>
+        <div id="pagadores-selector">
+          ${families.map(f => `
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:14px;">
+              <input type="checkbox" id="paga-${f.id}" onchange="recalcPagos()" style="width:auto;margin:0;">
+              ${escHtml(f.name)} <span style="color:var(--text3);font-size:12px;">(${fmt(familyTotal(f))})</span>
+            </label>
+          `).join('')}
+        </div>
+        <button class="btn btn-sm" style="margin-top:10px;" onclick="sugerirPagos()">✨ Sugerir reparto equilibrado</button>
+      </div>
+    `;
+    container.innerHTML += `<div id="pagos-resultado"></div>`;
+  }
+}
+
+window.sugerirPagos = function() {
+  // Find best 2-pagador split: try all combinations and pick the most balanced
+  if (families.length < 2) return;
+  const totals = families.map(f => ({ id: f.id, total: familyTotal(f) }));
+  const grandTotal = totals.reduce((s,f) => s + f.total, 0);
+  let bestDiff = Infinity, bestA = [], bestB = [];
+
+  // Try all subsets for pagador A (up to half)
+  const n = families.length;
+  for (let mask = 1; mask < (1 << n) - 1; mask++) {
+    const groupA = [], groupB = [];
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) groupA.push(totals[i]);
+      else groupB.push(totals[i]);
+    }
+    if (groupA.length === 0 || groupB.length === 0) continue;
+    const sumA = groupA.reduce((s,f) => s + f.total, 0);
+    const sumB = grandTotal - sumA;
+    const diff = Math.abs(sumA - sumB);
+    if (diff < bestDiff) { bestDiff = diff; bestA = groupA; bestB = groupB; }
+  }
+
+  // Mark pagadores: use first family of each group as pagador
+  // Uncheck all first
+  families.forEach(f => {
+    const cb = document.getElementById('paga-'+f.id);
+    if (cb) cb.checked = false;
+  });
+  // Mark one pagador per group
+  if (bestA.length) { const cb = document.getElementById('paga-'+bestA[0].id); if (cb) cb.checked = true; }
+  if (bestB.length) { const cb = document.getElementById('paga-'+bestB[0].id); if (cb) cb.checked = true; }
+
+  // Store suggested groups in dataset for recalc
+  const resultEl = document.getElementById('pagos-resultado');
+  resultEl.dataset.groupA = JSON.stringify(bestA.map(f=>f.id));
+  resultEl.dataset.groupB = JSON.stringify(bestB.map(f=>f.id));
+  resultEl.dataset.pagadorA = bestA[0].id;
+  resultEl.dataset.pagadorB = bestB[0].id;
+
+  renderPagosResultado(bestA, bestB);
+};
+
+window.recalcPagos = function() {
+  // Get checked pagadores
+  const pagadores = families.filter(f => {
+    const cb = document.getElementById('paga-'+f.id);
+    return cb && cb.checked;
+  });
+  if (pagadores.length === 0) {
+    document.getElementById('pagos-resultado').innerHTML = '';
+    return;
+  }
+  if (pagadores.length === 1) {
+    // One pagador covers all
+    renderPagosResultado(families.map(f=>({id:f.id,total:familyTotal(f)})), []);
+    return;
+  }
+  // With 2+ pagadores, let user assign manually via the resultado area
+  renderPagosManual(pagadores);
+};
+
+function renderPagosManual(pagadores) {
+  const el = document.getElementById('pagos-resultado');
+  if (!el) return;
+  let html = `<div class="card" style="margin-top:1rem;"><div class="card-title">Asignar familias a cada pagador</div>`;
+  pagadores.forEach(pag => {
+    html += `
+      <div style="margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:500;color:var(--accent);margin-bottom:6px;">💳 ${escHtml(pag.name)} paga por:</div>
+        ${families.filter(f=>f.id!==pag.id).map(f=>`
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer;">
+            <input type="checkbox" class="asign-${pag.id}" data-fid="${f.id}" onchange="recalcManual()" style="width:auto;margin:0;">
+            ${escHtml(f.name)} — ${fmt(familyTotal(f))}
+          </label>
+        `).join('')}
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer;">
+          <input type="checkbox" class="asign-${pag.id}" data-fid="${pag.id}" checked disabled style="width:auto;margin:0;">
+          ${escHtml(pag.name)} (propio) — ${fmt(familyTotal(pag))}
+        </label>
+      </div>`;
+  });
+  html += `<div id="manual-result"></div></div>`;
+  el.innerHTML = html;
+  recalcManual();
+}
+
+window.recalcManual = function() {
+  const pagadores = families.filter(f => { const cb = document.getElementById('paga-'+f.id); return cb && cb.checked; });
+  const pagosMap = {};
+  pagadores.forEach(pag => {
+    pagosMap[pag.id] = [pag.id]; // always includes own
+    document.querySelectorAll(`.asign-${pag.id}:checked`).forEach(cb => {
+      const fid = parseInt(cb.dataset.fid);
+      if (fid !== pag.id) pagosMap[pag.id].push(fid);
+    });
+  });
+  let html = `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">`;
+  pagadores.forEach(pag => {
+    const cubiertos = pagosMap[pag.id];
+    const total = cubiertos.reduce((s,fid) => { const f = families.find(x=>x.id===fid); return s + (f?familyTotal(f):0); }, 0);
+    const nombres = cubiertos.map(fid => { const f = families.find(x=>x.id===fid); return f?escHtml(f.name):''; }).join(', ');
+    html += `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid var(--border);">
+      <span>💳 ${escHtml(pag.name)} <span style="font-size:12px;color:var(--text3);">(${nombres})</span></span>
+      <strong style="color:var(--accent);">${fmt(total)}</strong>
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('manual-result').innerHTML = html;
+};
+
+function renderPagosResultado(groupA, groupB) {
+  const el = document.getElementById('pagos-resultado');
+  if (!el) return;
+  const pagadorA = families.find(f=>f.id===groupA[0]?.id);
+  const pagadorB = families.find(f=>f.id===groupB[0]?.id);
+  const sumA = groupA.reduce((s,f)=>s+(families.find(x=>x.id===f.id)?familyTotal(families.find(x=>x.id===f.id)):0),0);
+  const sumB = groupB.reduce((s,f)=>s+(families.find(x=>x.id===f.id)?familyTotal(families.find(x=>x.id===f.id)):0),0);
+
+  let html = `<div class="card" style="margin-top:1rem;"><div class="card-title">Reparto sugerido</div>`;
+  if (pagadorA) {
+    const nombresA = groupA.map(f=>{const fam=families.find(x=>x.id===f.id);return fam?escHtml(fam.name):'';}).join(', ');
+    html += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">
+      <span>💳 ${escHtml(pagadorA.name)} paga <span style="font-size:12px;color:var(--text3);">(${nombresA})</span></span>
+      <strong style="color:var(--accent);font-size:16px;">${fmt(sumA)}</strong>
+    </div>`;
+  }
+  if (pagadorB && groupB.length > 0) {
+    const nombresB = groupB.map(f=>{const fam=families.find(x=>x.id===f.id);return fam?escHtml(fam.name):'';}).join(', ');
+    html += `<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;">
+      <span>💳 ${escHtml(pagadorB.name)} paga <span style="font-size:12px;color:var(--text3);">(${nombresB})</span></span>
+      <strong style="color:var(--accent);font-size:16px;">${fmt(sumB)}</strong>
+    </div>`;
+  }
+  html += `<div style="font-size:12px;color:var(--text3);margin-top:8px;">Diferencia entre pagos: ${fmt(Math.abs(sumA-sumB))}</div>`;
+  html += `</div>`;
+  el.innerHTML = html;
 }
 
 /* ── Helpers ── */
