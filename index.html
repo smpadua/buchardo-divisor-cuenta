@@ -1655,16 +1655,16 @@ function renderPagosManual(pagadores) {
   pagadores.forEach(pag => {
     html += `
       <div style="margin-bottom:14px;">
-        <div style="font-size:14px;font-weight:500;color:var(--accent);margin-bottom:6px;">💳 ${escHtml(pag.name)} paga por:</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:6px;">💳 ${escHtml(pag.name)} paga a:</div>
         ${families.filter(f=>f.id!==pag.id).map(f=>`
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer;">
             <input type="checkbox" class="asign-${pag.id}" data-fid="${f.id}" onchange="recalcManual()" style="width:auto;margin:0;">
-            ${escHtml(f.name)} — ${fmt(familyTotal(f))}
+            ${escHtml(f.name)}
           </label>
         `).join('')}
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer;">
-          <input type="checkbox" class="asign-${pag.id}" data-fid="${pag.id}" checked disabled style="width:auto;margin:0;">
-          ${escHtml(pag.name)} (propio) — ${fmt(familyTotal(pag))}
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;color:var(--text3);cursor:default;">
+          <input type="checkbox" checked disabled style="width:auto;margin:0;">
+          ${escHtml(pag.name)} (propio)
         </label>
       </div>`;
   });
@@ -1674,25 +1674,58 @@ function renderPagosManual(pagadores) {
 }
 
 window.recalcManual = function() {
+  const grandTotal = families.reduce((s,f) => s + familyTotal(f), 0);
   const pagadores = families.filter(f => { const cb = document.getElementById('paga-'+f.id); return cb && cb.checked; });
   const pagosMap = {};
   pagadores.forEach(pag => {
-    pagosMap[pag.id] = [pag.id]; // always includes own
+    pagosMap[pag.id] = [pag.id];
     document.querySelectorAll(`.asign-${pag.id}:checked`).forEach(cb => {
       const fid = parseInt(cb.dataset.fid);
       if (fid !== pag.id) pagosMap[pag.id].push(fid);
     });
   });
-  let html = `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">`;
-  pagadores.forEach(pag => {
+
+  // Compute totals per pagador
+  const pagadorTotals = pagadores.map(pag => {
     const cubiertos = pagosMap[pag.id];
     const total = cubiertos.reduce((s,fid) => { const f = families.find(x=>x.id===fid); return s + (f?familyTotal(f):0); }, 0);
-    const nombres = cubiertos.map(fid => { const f = families.find(x=>x.id===fid); return f?escHtml(f.name):''; }).join(', ');
-    html += `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid var(--border);">
-      <span>💳 ${escHtml(pag.name)} <span style="font-size:12px;color:var(--text3);">(${nombres})</span></span>
-      <strong style="color:var(--accent);">${fmt(total)}</strong>
-    </div>`;
+    const nombres = cubiertos.filter(fid=>fid!==pag.id).map(fid => { const f = families.find(x=>x.id===fid); return f?escHtml(f.name):''; });
+    return { pag, total, nombres };
   });
+
+  const totalAsignado = pagadorTotals.reduce((s,p) => s + p.total, 0);
+  const diff = grandTotal - totalAsignado;
+
+  let html = `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">`;
+  pagadorTotals.forEach(({ pag, total, nombres }) => {
+    const destinos = nombres.length > 0
+      ? `${escHtml(pag.name)} paga a ${escHtml(pag.name)}, ${nombres.join(', ')}`
+      : `${escHtml(pag.name)} paga a ${escHtml(pag.name)}`;
+    html += `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:14px;margin-bottom:2px;">💳 ${destinos}</div>
+        <div style="font-size:20px;font-weight:500;color:var(--accent);font-family:'Playfair Display',serif;">${fmt(total)}</div>
+      </div>`;
+  });
+
+  // Total summary and diff alert
+  html += `
+    <div style="padding-top:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;">
+        <span>Total de la mesa</span><strong>${fmt(grandTotal)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;">
+        <span>Total asignado</span><strong>${fmt(totalAsignado)}</strong>
+      </div>
+      ${Math.abs(diff) > 0 ? `
+        <div style="margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;background:${diff > 0 ? 'var(--warning-bg)' : 'var(--danger-bg)'};color:${diff > 0 ? 'var(--warning)' : 'var(--danger)'};">
+          ⚠ ${diff > 0 ? `Faltan asignar ${fmt(diff)} — hay familias sin pagador.` : `Se asignó ${fmt(Math.abs(diff))} de más — hay familias cubiertas por más de un pagador.`}
+        </div>` : `
+        <div style="margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;background:var(--success-bg);color:var(--success);">
+          ✓ El total asignado coincide con el total de la mesa.
+        </div>`}
+    </div>
+  `;
   html += `</div>`;
   document.getElementById('manual-result').innerHTML = html;
 };
@@ -1700,27 +1733,56 @@ window.recalcManual = function() {
 function renderPagosResultado(groupA, groupB) {
   const el = document.getElementById('pagos-resultado');
   if (!el) return;
+  const grandTotal = families.reduce((s,f) => s + familyTotal(f), 0);
   const pagadorA = families.find(f=>f.id===groupA[0]?.id);
   const pagadorB = families.find(f=>f.id===groupB[0]?.id);
-  const sumA = groupA.reduce((s,f)=>s+(families.find(x=>x.id===f.id)?familyTotal(families.find(x=>x.id===f.id)):0),0);
-  const sumB = groupB.reduce((s,f)=>s+(families.find(x=>x.id===f.id)?familyTotal(families.find(x=>x.id===f.id)):0),0);
+  const sumA = groupA.reduce((s,f)=>{const fam=families.find(x=>x.id===f.id);return s+(fam?familyTotal(fam):0);},0);
+  const sumB = groupB.reduce((s,f)=>{const fam=families.find(x=>x.id===f.id);return s+(fam?familyTotal(fam):0);},0);
+  const totalAsignado = sumA + sumB;
+  const diff = grandTotal - totalAsignado;
 
   let html = `<div class="card" style="margin-top:1rem;"><div class="card-title">Reparto sugerido</div>`;
   if (pagadorA) {
-    const nombresA = groupA.map(f=>{const fam=families.find(x=>x.id===f.id);return fam?escHtml(fam.name):'';}).join(', ');
-    html += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;">
-      <span>💳 ${escHtml(pagadorA.name)} paga <span style="font-size:12px;color:var(--text3);">(${nombresA})</span></span>
-      <strong style="color:var(--accent);font-size:16px;">${fmt(sumA)}</strong>
-    </div>`;
+    const destA = groupA.filter(f=>f.id!==pagadorA.id).map(f=>{const fam=families.find(x=>x.id===f.id);return fam?escHtml(fam.name):'';});
+    const labelA = destA.length > 0
+      ? `${escHtml(pagadorA.name)} paga a ${escHtml(pagadorA.name)}, ${destA.join(', ')}`
+      : `${escHtml(pagadorA.name)} paga a ${escHtml(pagadorA.name)}`;
+    html += `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:14px;margin-bottom:2px;">💳 ${labelA}</div>
+        <div style="font-size:20px;font-weight:500;color:var(--accent);font-family:'Playfair Display',serif;">${fmt(sumA)}</div>
+      </div>`;
   }
   if (pagadorB && groupB.length > 0) {
-    const nombresB = groupB.map(f=>{const fam=families.find(x=>x.id===f.id);return fam?escHtml(fam.name):'';}).join(', ');
-    html += `<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;">
-      <span>💳 ${escHtml(pagadorB.name)} paga <span style="font-size:12px;color:var(--text3);">(${nombresB})</span></span>
-      <strong style="color:var(--accent);font-size:16px;">${fmt(sumB)}</strong>
-    </div>`;
+    const destB = groupB.filter(f=>f.id!==pagadorB.id).map(f=>{const fam=families.find(x=>x.id===f.id);return fam?escHtml(fam.name):'';});
+    const labelB = destB.length > 0
+      ? `${escHtml(pagadorB.name)} paga a ${escHtml(pagadorB.name)}, ${destB.join(', ')}`
+      : `${escHtml(pagadorB.name)} paga a ${escHtml(pagadorB.name)}`;
+    html += `
+      <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:14px;margin-bottom:2px;">💳 ${labelB}</div>
+        <div style="font-size:20px;font-weight:500;color:var(--accent);font-family:'Playfair Display',serif;">${fmt(sumB)}</div>
+      </div>`;
   }
-  html += `<div style="font-size:12px;color:var(--text3);margin-top:8px;">Diferencia entre pagos: ${fmt(Math.abs(sumA-sumB))}</div>`;
+
+  html += `
+    <div style="padding-top:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;">
+        <span>Total de la mesa</span><strong>${fmt(grandTotal)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;">
+        <span>Total asignado</span><strong>${fmt(totalAsignado)}</strong>
+      </div>
+      ${Math.abs(diff) > 0 ? `
+        <div style="margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;background:var(--warning-bg);color:var(--warning);">
+          ⚠ Faltan asignar ${fmt(diff)} — hay familias sin pagador.
+        </div>` : `
+        <div style="margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;background:var(--success-bg);color:var(--success);">
+          ✓ El total asignado coincide con el total de la mesa.
+        </div>`}
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;">Diferencia entre pagos: ${fmt(Math.abs(sumA-sumB))}</div>
+    </div>
+  `;
   html += `</div>`;
   el.innerHTML = html;
 }
