@@ -211,10 +211,6 @@
       <div class="step-tab active" id="tab1" onclick="goStep(1)"><span class="step-num">1</span>Pedidos</div>
       <div class="step-tab" id="tab2" onclick="goStep(2)"><span class="step-num">2</span>Comanda</div>
       <div class="step-tab" id="tab3" onclick="goStep(3)"><span class="step-num">3</span>Resumen</div>
-      <div class="step-tab" id="tab4" onclick="goStep(4)"><span class="step-num">4</span>Ticket</div>
-      <div class="step-tab active" id="tab1" onclick="goStep(1)"><span class="step-num">1</span>Pedidos</div>
-      <div class="step-tab" id="tab2" onclick="goStep(2)"><span class="step-num">2</span>Comanda</div>
-      <div class="step-tab" id="tab3" onclick="goStep(3)"><span class="step-num">3</span>Resumen</div>
       <div class="step-tab" id="tab4" onclick="goStep(4)"><span class="step-num">4</span>Pagos</div>
     </nav>
 
@@ -603,16 +599,10 @@ function subscribeToSession() {
       orders: Array.isArray(f.orders) ? f.orders : (f.orders ? Object.values(f.orders) : [])
     }));
 
-    // Merge: keep local version for families currently being saved by this device
-    families = incomingFamilies.map(incoming => {
-      if (pendingFamilySaves.has(incoming.id)) {
-        // Keep local version while save is in flight
-        return families.find(f => f.id === incoming.id) || incoming;
-      }
-      return incoming;
-    });
-    // Add any local families not yet in Firebase
-    families.push(...families.filter(f => pendingFamilySaves.has(f.id) && !incomingFamilies.find(i => i.id === f.id)));
+    // Sort newest first (id is timestamp)
+    families = incomingFamilies
+      .map(f => pendingFamilySaves.has(f.id) ? (families.find(x => x.id === f.id) || f) : f)
+      .sort((a, b) => b.id - a.id);
 
     const rawTicket = data.ticketItems ? Object.values(data.ticketItems) : [];
     ticketItems = rawTicket.map(it => ({ ...it }));
@@ -806,7 +796,7 @@ window.updateFamilyName = function(id, val) {
 window.addOrder = function(fid) {
   const f = families.find(x => x.id === fid);
   if (f) {
-    f.orders.unshift({ menu:'ejecutivo1', item:'', garnish:'', sauce:'', bebida:'', postre:0, cafe:0, ddl:0, mixto:0, comments:'', description:'', price:0 });
+    f.orders.push({ menu:'ejecutivo1', item:'', garnish:'', sauce:'', bebida:'', postre:0, cafe:0, ddl:0, mixto:0, comments:'', description:'', price:0 });
     renderFamilies();
     saveFamilyNode(f);
   }
